@@ -21,8 +21,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ session }) => {
   
   useEffect(() => {
     const fetchProfile = async () => {
-      const userProfile = await getProfile(session.user);
-      setProfile(userProfile);
+      try {
+        const userProfile = await getProfile(session.user);
+        setProfile(userProfile);
+      } catch (err: any) {
+        console.error("Failed to fetch user profile:", err);
+        setError("Could not load your user profile. Please try refreshing the page.");
+      }
     };
     fetchProfile();
   }, [session.user]);

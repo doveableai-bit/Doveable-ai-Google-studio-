@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Session } from '@supabase/supabase';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from './services/supabase';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
@@ -32,9 +32,16 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.error("Error fetching session:", error);
+      }
+      setSession(data?.session ?? null);
+    }).catch(err => {
+        console.error("Critical error fetching session:", err);
+        setSession(null);
+    }).finally(() => {
+        setLoading(false);
     });
 
     const {

@@ -18,8 +18,13 @@ const Header: React.FC<HeaderProps> = ({ user, isAdmin, onToggleAdminView, curre
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const userProfile = await getProfile(user);
-      setProfile(userProfile);
+      try {
+        const userProfile = await getProfile(user);
+        setProfile(userProfile);
+      } catch (error) {
+        console.error("Failed to fetch profile for header:", error);
+        // Don't crash the app, just fail gracefully
+      }
     };
     fetchProfile();
     
