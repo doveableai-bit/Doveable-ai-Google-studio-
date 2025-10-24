@@ -2,14 +2,25 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { GeneratedCode } from '../types';
 
-if (!process.env.API_KEY) {
-  console.warn("API_KEY environment variable not set. Using a placeholder key.");
-  // This is a placeholder for development environments where the key is not set.
-  // The actual key is expected to be provided by the runtime environment.
-  process.env.API_KEY = "YOUR_API_KEY_HERE";
+let apiKey: string | undefined;
+
+try {
+  // This will safely access the environment variable if it exists,
+  // and prevent a ReferenceError in browser environments where `process` is not defined.
+  apiKey = process.env.API_KEY;
+} catch (error) {
+  console.warn("Could not access process.env. This is expected in some browser environments.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+if (!apiKey) {
+  console.error(
+    "CRITICAL: Gemini API key not found. Please ensure the API_KEY environment variable is configured in your deployment environment. AI functionality will be disabled."
+  );
+}
+
+// Initialize with the key, or an empty string if not found.
+// The GenAI library will then fail gracefully on API calls rather than on initialization.
+const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
 const responseSchema = {
   type: Type.OBJECT,
@@ -35,6 +46,9 @@ const responseSchema = {
 };
 
 export const generateWebsiteCode = async (prompt: string): Promise<GeneratedCode> => {
+  if (!apiKey) {
+    throw new Error("Cannot generate code: Gemini API Key is not configured.");
+  }
   try {
     const fullPrompt = `You are an expert full-stack web developer. A user wants to build a website with the following description: "${prompt}". 
     Your task is to generate the complete HTML, CSS, and JavaScript for a single-page website.
@@ -63,6 +77,6 @@ export const generateWebsiteCode = async (prompt: string): Promise<GeneratedCode
     };
   } catch (error) {
     console.error("Error generating website code:", error);
-    throw new Error("Failed to generate code from AI. Please check your prompt and API key.");
+    throw new Error("Failed to generate code from AI. Please check your prompt and API key configuration.");
   }
 };
