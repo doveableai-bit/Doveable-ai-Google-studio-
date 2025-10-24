@@ -32,24 +32,18 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error) {
-        console.error("Error fetching session:", error);
-      }
-      setSession(data?.session ?? null);
-    }).catch(err => {
-        console.error("Critical error fetching session:", err);
-        setSession(null);
-    }).finally(() => {
-        setLoading(false);
-    });
-
+    // onAuthStateChange is the recommended way to handle auth state changes,
+    // including the initial session loading after an OAuth redirect.
+    // It fires once upon subscription with the initial session state, and then
+    // again whenever the auth state changes.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setLoading(false); // Set loading to false only after we've confirmed the session status.
     });
 
+    // The subscription is cleaned up when the component unmounts.
     return () => subscription.unsubscribe();
   }, []);
 
