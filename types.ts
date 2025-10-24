@@ -22,5 +22,10 @@ export interface GeneratedCode {
 export interface UserProfile {
     id: string;
     email?: string;
-    coins: number;
+    created_at?: string;
+    free_coins: number;
+    purchased_coins: number;
+    last_free_coin_grant: string | null;
+    is_subscribed: boolean;
+    timezone?: string | null;
 }

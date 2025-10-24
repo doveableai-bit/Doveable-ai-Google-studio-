@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllProfiles, updateCoins } from '../services/userService';
+import { getAllProfiles, updatePurchasedCoins, updateSubscriptionStatus } from '../services/userService';
 import type { UserProfile } from '../types';
 
 const AdminPage: React.FC = () => {
@@ -24,7 +24,6 @@ const AdminPage: React.FC = () => {
     fetchProfiles();
   }, []);
 
-  // FIX: Refactored to be more type-safe and avoid passing a string to isNaN.
   const handleCoinChange = (userId: string, value: string) => {
     if (value === '') {
       setEditingCoins(prev => ({ ...prev, [userId]: '' }));
@@ -39,16 +38,15 @@ const AdminPage: React.FC = () => {
   const handleUpdateCoins = async (userId: string) => {
     const newAmount = editingCoins[userId];
     if (typeof newAmount !== 'number' || newAmount < 0) {
-      alert("Please enter a valid, non-negative number for coins.");
+      alert("Please enter a valid, non-negative number for purchased coins.");
       return;
     }
 
     try {
-        const updatedProfile = await updateCoins(userId, newAmount);
+        const updatedProfile = await updatePurchasedCoins(userId, newAmount);
         setProfiles(prevProfiles => 
             prevProfiles.map(p => p.id === userId ? updatedProfile : p)
         );
-        // Clear the editing state for this user
         setEditingCoins(prev => {
             const newState = { ...prev };
             delete newState[userId];
@@ -59,6 +57,16 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const handleSubscriptionToggle = async (userId: string, currentStatus: boolean) => {
+    try {
+        const updatedProfile = await updateSubscriptionStatus(userId, !currentStatus);
+        setProfiles(prevProfiles => 
+            prevProfiles.map(p => p.id === userId ? updatedProfile : p)
+        );
+    } catch (err: any) {
+        alert("Failed to update subscription status: " + err.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -81,8 +89,10 @@ const AdminPage: React.FC = () => {
             <thead className="text-xs text-gray-400 uppercase bg-primary">
               <tr>
                 <th scope="col" className="px-6 py-3">Email</th>
-                <th scope="col" className="px-6 py-3">User ID</th>
-                <th scope="col" className="px-6 py-3">Coins</th>
+                <th scope="col" className="px-6 py-3">Subscribed</th>
+                <th scope="col" className="px-6 py-3">Free Coins</th>
+                <th scope="col" className="px-6 py-3">Purchased Coins</th>
+                <th scope="col" className="px-6 py-3">Last Grant</th>
                 <th scope="col" className="px-6 py-3">Actions</th>
               </tr>
             </thead>
@@ -90,14 +100,25 @@ const AdminPage: React.FC = () => {
               {profiles.map(profile => (
                 <tr key={profile.id} className="border-b border-gray-700 hover:bg-primary/50">
                   <td className="px-6 py-4 font-medium text-white whitespace-nowrap">{profile.email}</td>
-                  <td className="px-6 py-4">{profile.id}</td>
+                  <td className="px-6 py-4">
+                    <input 
+                        type="checkbox"
+                        checked={profile.is_subscribed}
+                        onChange={() => handleSubscriptionToggle(profile.id, profile.is_subscribed)}
+                        className="w-4 h-4 text-accent bg-gray-700 border-gray-600 rounded focus:ring-accent"
+                    />
+                  </td>
+                  <td className="px-6 py-4">{profile.free_coins}</td>
                   <td className="px-6 py-4">
                      <input 
                         type="number"
-                        value={editingCoins[profile.id] ?? profile.coins}
+                        value={editingCoins[profile.id] ?? profile.purchased_coins}
                         onChange={(e) => handleCoinChange(profile.id, e.target.value)}
                         className="bg-primary border border-gray-600 rounded-md px-2 py-1 w-24 focus:outline-none focus:ring-2 focus:ring-accent"
                      />
+                  </td>
+                  <td className="px-6 py-4 text-xs">
+                    {profile.last_free_coin_grant ? new Date(profile.last_free_coin_grant).toLocaleString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4">
                     <button
@@ -105,7 +126,7 @@ const AdminPage: React.FC = () => {
                         disabled={editingCoins[profile.id] === undefined}
                         className="font-medium text-accent-hover hover:underline disabled:text-gray-500 disabled:no-underline"
                     >
-                        Save
+                        Save Coins
                     </button>
                   </td>
                 </tr>

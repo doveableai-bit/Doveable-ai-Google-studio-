@@ -28,7 +28,7 @@ const Header: React.FC<HeaderProps> = ({ user, isAdmin, onToggleAdminView, curre
     };
     fetchProfile();
     
-    // Listen for coin updates from other components
+    // Listen for profile updates from other components
     const channel = supabase.channel(`profile-changes-for-${user.id}`);
     channel
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, payload => {
@@ -50,6 +50,8 @@ const Header: React.FC<HeaderProps> = ({ user, isAdmin, onToggleAdminView, curre
       provider: 'github',
     });
   }
+  
+  const totalCoins = (profile?.free_coins ?? 0) + (profile?.purchased_coins ?? 0);
 
   return (
     <header className="flex-shrink-0 flex items-center justify-between p-4 bg-secondary border-b border-gray-700">
@@ -68,7 +70,7 @@ const Header: React.FC<HeaderProps> = ({ user, isAdmin, onToggleAdminView, curre
         )}
         <div className="flex items-center space-x-2 bg-primary px-3 py-1.5 rounded-full">
           <CoinIcon className="w-5 h-5" />
-          <span className="text-sm font-medium text-white">{profile?.coins ?? 0} Coins</span>
+          <span className="text-sm font-medium text-white">{totalCoins} Coins</span>
         </div>
         <div className="relative">
           <button onClick={() => setDropdownOpen(!dropdownOpen)} className="focus:outline-none">
