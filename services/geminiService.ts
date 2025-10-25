@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { GeneratedCode } from '../types';
+import learningService from './learningService';
 
 let apiKey: string | undefined;
 
@@ -72,9 +73,10 @@ export const generateWebsiteCode = async (
   }
   try {
     let fullPrompt: string;
+    const learningContext = learningService.getPersonalizedContextForPrompt(prompt);
 
     if (existingCode) {
-      fullPrompt = `You are an expert full-stack web developer. You are currently editing an existing website.
+      fullPrompt = `${learningContext}You are an expert full-stack web developer. You are currently editing an existing website.
       The user's request is: "${prompt}".
       ${attachment ? "The user has also provided an image as a visual reference for this edit. Incorporate the style, colors, and content from the image into your changes." : ""}
   
@@ -100,7 +102,7 @@ export const generateWebsiteCode = async (
       Then, provide the complete, updated code for the HTML body, CSS, and JavaScript. Do not return partial code.
       The final output must be a valid JSON object that strictly adheres to the provided schema. Do not omit any fields.`;
     } else {
-      fullPrompt = `You are an expert full-stack web developer tasked with building a single-page website from scratch.
+      fullPrompt = `${learningContext}You are an expert full-stack web developer tasked with building a single-page website from scratch.
       The user's request is: "${prompt}".
       ${attachment ? "The user has also provided an image as a visual reference. Incorporate the style, colors, and content from the image into your design." : ""}
       Your goal is to generate a complete, visually appealing, and functional website.

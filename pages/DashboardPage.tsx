@@ -9,6 +9,7 @@ import ConnectBackendModal from '../components/core/ConnectBackendModal';
 import ApiKeyWarningBanner from '../components/core/ApiKeyWarningBanner';
 import { generateWebsiteCode, isApiKeyConfigured } from '../services/geminiService';
 import { getProjects, getProject, saveProject, isStorageConfigured, isUserStorageConfigured, initializeStorage } from '../services/projectService';
+import learningService from '../services/learningService';
 import type { GeneratedCode, Message, Project } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -34,15 +35,39 @@ const DashboardPage: React.FC = () => {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('local');
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const [learningInsights, setLearningInsights] = useState<string[]>([]);
 
   const debouncedCode = useDebounce(generatedCode, 2000);
   const debouncedMessages = useDebounce(messages, 2000);
+
+  const refreshLearningInsights = useCallback(() => {
+    const data = learningService.getLearningData();
+    const newInsights: string[] = [];
+
+    if (data.userPreferences?.preferredTechStack?.length) {
+        newInsights.push(`Prefers: ${data.userPreferences.preferredTechStack.join(', ')}`);
+    }
+    const commonReq = data.commonRequests.sort((a,b) => b.frequency - a.frequency)[0];
+    if (commonReq) {
+        newInsights.push(`Often asks for: "${commonReq.request.substring(0, 40)}${commonReq.request.length > 40 ? '...' : ''}"`);
+    }
+    if (data.projectPatterns.length > 0) {
+        const uniquePatterns = [...new Set(data.projectPatterns.map(p => p.name))];
+        if(uniquePatterns.length > 0)
+            newInsights.push(`Has experience building: ${uniquePatterns.join(', ')}`);
+    }
+    
+    if (newInsights.length > 0) {
+        setLearningInsights(newInsights);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isApiKeyConfigured()) {
       setApiKeyMissing(true);
     }
-  }, []);
+    refreshLearningInsights();
+  }, [refreshLearningInsights]);
 
   const loadUserProjects = useCallback(async () => {
     if (!isStorageConfigured()) {
@@ -139,6 +164,10 @@ const DashboardPage: React.FC = () => {
     try {
       const code = await generateWebsiteCode(prompt, attachment, generatedCode);
       setGeneratedCode(code);
+      
+      learningService.updateFromGeneration(prompt, code);
+      learningService.recordUserBehavior('generate-code', `prompt: "${prompt}"`, true);
+      refreshLearningInsights();
 
       const planItems = code.plan.split('\n').filter(item => item.trim().startsWith('*') || item.trim().startsWith('-')).map(item => item.trim().substring(1).trim());
       
@@ -161,6 +190,7 @@ const DashboardPage: React.FC = () => {
       }
 
     } catch (err: any) {
+      learningService.recordUserBehavior('generate-code', `prompt: "${prompt}"`, false);
       const errorText = err.message || 'An unknown error occurred.';
       const updatedThoughtMessage: Message = {
         ...thoughtMessage,
@@ -226,7 +256,7 @@ const DashboardPage: React.FC = () => {
       <main className="flex-grow flex overflow-hidden">
         <div className="flex flex-1 overflow-hidden">
           <div className="w-[40%] bg-panel border-r border-border flex flex-col overflow-hidden">
-            <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} />
+            <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} />
           </div>
           <div className="flex-1 bg-panel overflow-hidden">
             {viewMode === 'preview' ? (

@@ -51,6 +51,13 @@ export const initializeStorage = (): boolean => {
         }
         
         // Fallback to default Doveable AI backend
+        // Do not initialize if the default credentials are still placeholders.
+        if (!DOVEABLE_SUPABASE_CONFIG.supabaseUrl || DOVEABLE_SUPABASE_CONFIG.supabaseUrl.includes('your-temp-project-id')) {
+            console.warn("Default Supabase backend is not configured with real credentials. Project saving features will be disabled until a user-specific backend is connected in Settings.");
+            supabase = null;
+            return false;
+        }
+        
         supabase = createSupabaseClient(DOVEABLE_SUPABASE_CONFIG.supabaseUrl, DOVEABLE_SUPABASE_CONFIG.supabaseAnonKey);
         return true;
 

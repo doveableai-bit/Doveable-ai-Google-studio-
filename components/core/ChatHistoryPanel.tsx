@@ -6,9 +6,10 @@ interface ChatHistoryPanelProps {
   messages: Message[];
   onSendMessage: (message: string, attachment: { name: string; dataUrl: string; type: string; } | null) => void;
   isLoading: boolean;
+  learningInsights?: string[];
 }
 
-const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMessage, isLoading }) => {
+const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMessage, isLoading, learningInsights }) => {
   const [input, setInput] = useState('');
   const [attachment, setAttachment] = useState<{ name: string; dataUrl: string; type: string; } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -134,6 +135,19 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
         <div ref={messagesEndRef} />
       </div>
       <div className="p-4 border-t border-border">
+        {learningInsights && learningInsights.length > 0 && (
+          <div className="mb-4">
+            <h3 className="font-semibold text-sm text-text-primary mb-2">AI Learning Insights</h3>
+            <div className="space-y-1.5">
+              {learningInsights.map((insight, index) => (
+                <div key={index} className="flex items-start gap-2 text-xs p-2 bg-gray-50 rounded text-text-secondary border border-gray-200">
+                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-1 flex-shrink-0"></div>
+                  <span>{insight}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {attachment && (
             <div className="mb-2 p-2 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 overflow-hidden">
