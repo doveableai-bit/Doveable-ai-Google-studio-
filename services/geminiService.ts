@@ -154,17 +154,7 @@ export const generateWebsiteCode = async (
       },
     });
 
-    // The model might occasionally wrap the JSON output in markdown code fences.
-    // This cleaning step makes the parsing more robust to prevent errors.
-    let jsonString = response.text.trim();
-    if (jsonString.startsWith('```json')) {
-      jsonString = jsonString.substring(7); // Remove ```json
-    }
-    if (jsonString.endsWith('```')) {
-      jsonString = jsonString.slice(0, -3); // Remove trailing ```
-    }
-    jsonString = jsonString.trim();
-
+    const jsonString = response.text.trim();
     const parsedJson = JSON.parse(jsonString);
 
     return {
