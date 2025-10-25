@@ -8,7 +8,7 @@ try {
   // Only the official 'API_KEY' variable is supported.
   // Fallbacks for typos have been removed to enforce correct configuration.
   apiKey = process.env.API_KEY;
-} catch (error)
+} catch (error) {
   console.warn("Could not access process.env. This is expected in some browser environments.");
 }
 
