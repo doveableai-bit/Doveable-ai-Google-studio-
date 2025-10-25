@@ -5,8 +5,10 @@ import learningService from './learningService';
 let apiKey: string | undefined;
 
 try {
-  apiKey = process.env.API_KEY || process.env.geminie_api_key;
-} catch (error) {
+  // Only the official 'API_KEY' variable is supported.
+  // Fallbacks for typos have been removed to enforce correct configuration.
+  apiKey = process.env.API_KEY;
+} catch (error)
   console.warn("Could not access process.env. This is expected in some browser environments.");
 }
 

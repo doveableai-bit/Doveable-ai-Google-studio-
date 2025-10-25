@@ -36,16 +36,30 @@ const HomePage: React.FC = () => {
           <div className="bg-error-bg border-l-4 border-error-text text-error-text p-6 text-left rounded-md">
             <h2 className="text-xl font-bold mb-3">Action Required: Configure Gemini API Key</h2>
             <p className="mb-4">
-              To enable AI website generation, you need to provide your Google Gemini API key.
-              This is done by setting an environment variable in your hosting provider's settings (e.g., Vercel).
+              To enable AI website generation, you must provide your Google Gemini API key
+              by setting an environment variable in your hosting provider's settings (e.g., Vercel).
             </p>
-            <ol className="list-decimal list-inside space-y-2 font-medium">
-              <li>Go to your project's dashboard on your hosting platform (e.g., Vercel).</li>
+            <ol className="list-decimal list-inside space-y-3 font-medium">
+              <li>Go to your project's dashboard on your hosting platform.</li>
               <li>Navigate to the <strong>Settings</strong> tab and find the <strong>Environment Variables</strong> section.</li>
-              <li>Create a new variable with the name <code>API_KEY</code>.</li>
+              <li>
+                Create a new variable with the exact name <code>API_KEY</code>.
+                <button 
+                  onClick={() => navigator.clipboard.writeText('API_KEY')}
+                  className="ml-2 px-2 py-1 text-xs bg-red-100 text-error-text border border-error-text rounded hover:bg-red-200 transition-colors"
+                  aria-label="Copy API_KEY to clipboard"
+                >
+                  Copy Name
+                </button>
+              </li>
               <li>Paste your Gemini API key as the value.</li>
-              <li><strong>Redeploy</strong> your project to apply the new environment variable.</li>
+              <li><strong>Important:</strong> You must <strong>Redeploy</strong> your project for the change to take effect.</li>
             </ol>
+            <div className="mt-4 p-3 bg-red-100 rounded-md">
+              <p className="font-bold text-sm text-red-900">
+                The variable name must be <strong className="font-extrabold">exactly</strong> <code>API_KEY</code>. Other names like <code>geminie_api_key</code> or <code>GEMINI_API_KEY</code> will not work.
+              </p>
+            </div>
             <p className="mt-4 text-sm">
               For detailed instructions, see the{' '}
               <a 
