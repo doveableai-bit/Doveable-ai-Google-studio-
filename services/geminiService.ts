@@ -1,41 +1,33 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { GeneratedCode } from '../types';
 import learningService from './learningService';
-
-// FIX: Switched from `import.meta.env.VITE_API_KEY` to `process.env.API_KEY` to align with guidelines and fix the TypeScript error.
-const apiKey: string | undefined = process.env.API_KEY;
-
-if (!apiKey) {
-  console.error(
-    // FIX: Updated error message to reference API_KEY instead of VITE_API_KEY.
-    "CRITICAL: Gemini API key not found. Please ensure the API_KEY environment variable is configured. AI functionality will be disabled."
-  );
-}
 
 let ai: GoogleGenAI | null = null;
 
 /**
  * Lazily initializes and returns the GoogleGenAI client.
- * This prevents the app from crashing on start if the API key is not configured.
+ * This prevents the app from crashing on start if the API key is not configured
+ * by deferring the access to `process.env.API_KEY`.
  * @returns {GoogleGenAI} The initialized client.
- * @throws {Error} if the API key is not configured.
+ * @throws {Error} if the API key is not configured when this function is called.
  */
 const getAiClient = (): GoogleGenAI => {
     if (ai) {
         return ai;
     }
+    
+    // Access the API key just-in-time to prevent module-level errors.
+    const apiKey: string | undefined = process.env.API_KEY;
+
     if (apiKey) {
         ai = new GoogleGenAI({ apiKey });
         return ai;
     }
-    // FIX: Updated error message to reference API_KEY instead of VITE_API_KEY.
+    
+    console.error(
+      "CRITICAL: Gemini API key not found. Please ensure the API_KEY environment variable is configured. AI functionality will be disabled."
+    );
     throw new Error("Cannot generate code: Gemini API Key is not configured. Please ensure the API_KEY environment variable is set in your project settings.");
-};
-
-// FIX: Removed isApiKeyConfigured as UI for API key management is disallowed by guidelines.
-export const isApiKeyConfigured = (): boolean => {
-  return !!apiKey;
 };
 
 const responseSchema = {
