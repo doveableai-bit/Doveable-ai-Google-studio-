@@ -246,14 +246,13 @@ const DashboardPage: React.FC = () => {
       <TopBar 
         onLoad={handleLoad}
         onNew={handleNew}
-        onSettingsClick={() => setIsSettingsOpen(true)}
         projects={projects}
         currentProject={currentProject}
         isUserStorageConfigured={userStorageConnected}
       />
       <main className="flex-grow flex overflow-hidden">
         <div className="flex flex-1 overflow-hidden">
-          <div className="w-[40%] bg-panel border-r border-border flex flex-col overflow-hidden">
+          <div className="w-[30%] flex-shrink-0 bg-panel border-r border-border flex flex-col overflow-hidden">
             <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} />
           </div>
           <div className="flex-1 bg-panel overflow-hidden">
@@ -262,6 +261,7 @@ const DashboardPage: React.FC = () => {
                 code={generatedCode} 
                 isLoading={isLoading} 
                 onEditClick={() => setViewMode('edit')}
+                onSettingsClick={() => setIsSettingsOpen(true)}
               />
             ) : (
               <CodeEditorPanel
