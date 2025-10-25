@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { GeneratedCode } from '../../types';
 import { EditIcon, SettingsIcon, GithubIcon } from '../ui/Icons';

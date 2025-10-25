@@ -1,3 +1,4 @@
+
 export interface StorageConfig {
   provider: 'supabase';
   supabaseUrl: string;

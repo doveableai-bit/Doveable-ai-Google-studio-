@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { DoveIcon, FolderIcon, PlusCircleIcon } from '../ui/Icons';
 import type { Project } from '../../types';

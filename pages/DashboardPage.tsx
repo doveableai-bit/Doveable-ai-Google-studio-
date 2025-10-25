@@ -36,7 +36,6 @@ const DashboardPage: React.FC = () => {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('local');
   // FIX: Removed apiKeyMissing state as per guidelines.
   const [learningInsights, setLearningInsights] = useState<string[]>([]);
-  const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat');
 
 
   const debouncedCode = useDebounce(generatedCode, 2000);
@@ -143,7 +142,6 @@ const DashboardPage: React.FC = () => {
   const handleGenerate = async (prompt: string, attachment: { name: string; dataUrl: string; type: string; } | null) => {
     setIsLoading(true);
     setViewMode('preview');
-    setMobileView('preview'); // Switch to preview on mobile after generating
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       type: 'user',
@@ -217,7 +215,6 @@ const DashboardPage: React.FC = () => {
         setGeneratedCode(projectData.code);
         setMessages(projectData.messages);
         setViewMode('preview');
-        setMobileView('preview');
         setSaveStatus('saved');
       }
     } catch (error) {
@@ -231,7 +228,6 @@ const DashboardPage: React.FC = () => {
     setGeneratedCode(null);
     setMessages([initialMessage]);
     setViewMode('preview');
-    setMobileView('chat');
     setSaveStatus('local');
   }
 
@@ -247,7 +243,6 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen font-sans">
-      {/* FIX: Removed ApiKeyWarningBanner as per guidelines. */}
       <TopBar 
         onLoad={handleLoad}
         onNew={handleNew}
@@ -255,42 +250,25 @@ const DashboardPage: React.FC = () => {
         currentProject={currentProject}
         isUserStorageConfigured={userStorageConnected}
       />
-      {/* Mobile View Toggles */}
-      <div className="lg:hidden flex border-b border-border bg-panel flex-shrink-0">
-        <button
-          onClick={() => setMobileView('chat')}
-          className={`flex-1 p-3 text-sm font-semibold text-center transition-colors ${mobileView === 'chat' ? 'text-accent border-b-2 border-accent bg-gray-50' : 'text-text-secondary hover:bg-gray-100'}`}
-        >
-          AI Chat
-        </button>
-        <button
-          onClick={() => setMobileView('preview')}
-          className={`flex-1 p-3 text-sm font-semibold text-center transition-colors ${mobileView === 'preview' ? 'text-accent border-b-2 border-accent bg-gray-50' : 'text-text-secondary hover:bg-gray-100'}`}
-        >
-          Live Preview / Editor
-        </button>
-      </div>
       <main className="flex-grow flex overflow-hidden">
-        <div className="flex flex-1 overflow-hidden">
-          <div className={`${mobileView === 'chat' ? 'block' : 'hidden'} lg:block w-full lg:w-[30%] flex-shrink-0 bg-panel lg:border-r border-border flex flex-col overflow-hidden`}>
-            <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} />
-          </div>
-          <div className={`${mobileView === 'preview' ? 'block' : 'hidden'} lg:block flex-1 bg-panel overflow-hidden`}>
-            {viewMode === 'preview' ? (
-              <LivePreviewPanel 
-                code={generatedCode} 
-                isLoading={isLoading} 
-                onEditClick={() => setViewMode('edit')}
-                onSettingsClick={() => setIsSettingsOpen(true)}
-              />
-            ) : (
-              <CodeEditorPanel
-                initialCode={generatedCode}
-                onCodeChange={setGeneratedCode}
-                onPreviewClick={() => setViewMode('preview')}
-              />
-            )}
-          </div>
+        <div className="w-[35%] flex-shrink-0 bg-panel border-r border-border flex flex-col overflow-hidden">
+          <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} />
+        </div>
+        <div className="flex-1 bg-panel overflow-hidden">
+          {viewMode === 'preview' ? (
+            <LivePreviewPanel 
+              code={generatedCode} 
+              isLoading={isLoading} 
+              onEditClick={() => setViewMode('edit')}
+              onSettingsClick={() => setIsSettingsOpen(true)}
+            />
+          ) : (
+            <CodeEditorPanel
+              initialCode={generatedCode}
+              onCodeChange={setGeneratedCode}
+              onPreviewClick={() => setViewMode('preview')}
+            />
+          )}
         </div>
       </main>
       <Footer 
