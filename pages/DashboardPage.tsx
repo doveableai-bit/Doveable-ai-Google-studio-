@@ -6,7 +6,8 @@ import TopBar from '../components/layout/TopBar';
 import Footer, { SaveStatus } from '../components/layout/Footer';
 import SettingsModal from '../components/core/SettingsModal';
 import ConnectBackendModal from '../components/core/ConnectBackendModal';
-import { generateWebsiteCode } from '../services/geminiService';
+import ApiKeyWarningBanner from '../components/core/ApiKeyWarningBanner';
+import { generateWebsiteCode, isApiKeyConfigured } from '../services/geminiService';
 import { getProjects, getProject, saveProject, isStorageConfigured, isUserStorageConfigured, initializeStorage } from '../services/projectService';
 import type { GeneratedCode, Message, Project } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
@@ -32,9 +33,16 @@ const DashboardPage: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('local');
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
 
   const debouncedCode = useDebounce(generatedCode, 2000);
   const debouncedMessages = useDebounce(messages, 2000);
+
+  useEffect(() => {
+    if (!isApiKeyConfigured()) {
+      setApiKeyMissing(true);
+    }
+  }, []);
 
   const loadUserProjects = useCallback(async () => {
     if (!isStorageConfigured()) {
@@ -206,6 +214,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen font-sans">
+      {apiKeyMissing && <ApiKeyWarningBanner />}
       <TopBar 
         onLoad={handleLoad}
         onNew={handleNew}

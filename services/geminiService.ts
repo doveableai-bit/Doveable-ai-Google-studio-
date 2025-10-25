@@ -17,6 +17,14 @@ if (!apiKey) {
 
 const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
+/**
+ * Checks if the Gemini API key has been configured in the environment.
+ * @returns {boolean} True if the API key is present, false otherwise.
+ */
+export const isApiKeyConfigured = (): boolean => {
+  return !!apiKey;
+};
+
 const responseSchema = {
   type: Type.OBJECT,
   properties: {
@@ -60,7 +68,7 @@ export const generateWebsiteCode = async (
   existingCode: GeneratedCode | null
 ): Promise<GeneratedCode> => {
   if (!apiKey) {
-    throw new Error("Cannot generate code: Gemini API Key is not configured.");
+    throw new Error("Cannot generate code: Gemini API Key is not configured. Please ensure the API_KEY environment variable is set in your project settings.");
   }
   try {
     let fullPrompt: string;
