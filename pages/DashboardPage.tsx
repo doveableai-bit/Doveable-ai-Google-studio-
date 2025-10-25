@@ -6,8 +6,8 @@ import TopBar from '../components/layout/TopBar';
 import Footer, { SaveStatus } from '../components/layout/Footer';
 import SettingsModal from '../components/core/SettingsModal';
 import ConnectBackendModal from '../components/core/ConnectBackendModal';
-import ApiKeyWarningBanner from '../components/core/ApiKeyWarningBanner';
-import { generateWebsiteCode, isApiKeyConfigured } from '../services/geminiService';
+// FIX: Removed ApiKeyWarningBanner import as it is no longer used.
+import { generateWebsiteCode } from '../services/geminiService'; // FIX: Removed isApiKeyConfigured from import.
 import { getProjects, getProject, saveProject, isStorageConfigured, isUserStorageConfigured, initializeStorage } from '../services/projectService';
 import learningService from '../services/learningService';
 import type { GeneratedCode, Message, Project } from '../types';
@@ -34,7 +34,7 @@ const DashboardPage: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('local');
-  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  // FIX: Removed apiKeyMissing state as per guidelines.
   const [learningInsights, setLearningInsights] = useState<string[]>([]);
 
   const debouncedCode = useDebounce(generatedCode, 2000);
@@ -63,9 +63,7 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!isApiKeyConfigured()) {
-      setApiKeyMissing(true);
-    }
+    // FIX: Removed API key check as per guidelines.
     refreshLearningInsights();
   }, [refreshLearningInsights]);
 
@@ -244,7 +242,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen font-sans">
-      {apiKeyMissing && <ApiKeyWarningBanner />}
+      {/* FIX: Removed ApiKeyWarningBanner as per guidelines. */}
       <TopBar 
         onLoad={handleLoad}
         onNew={handleNew}
