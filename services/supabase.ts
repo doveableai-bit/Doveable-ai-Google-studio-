@@ -1,7 +1,32 @@
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-import { createClient } from '@supabase/supabase-js';
+// This file no longer exports a singleton client.
+// Instead, it provides a factory function to create clients on-demand
+// based on user-provided credentials.
 
-const supabaseUrl = 'https://ugibwxuskjdwyrdlenjq.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaWJ3eHVza2pkd3lyZGxlbmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyNzgxNDMsImV4cCI6MjA3Njg1NDE0M30._NhSM_qoWDAIZ4lk26jRH8anoUbk8CgjhnvcXKQoIrY';
+let currentClient: SupabaseClient | null = null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+/**
+ * Creates and returns a new Supabase client instance.
+ * @param supabaseUrl The URL of the user's Supabase project.
+ * @param supabaseAnonKey The anon key of the user's Supabase project.
+ * @returns A new SupabaseClient instance.
+ */
+export const createSupabaseClient = (supabaseUrl: string, supabaseAnonKey: string): SupabaseClient => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase URL and anon key are required to create a client.');
+  }
+  const client = createClient(supabaseUrl, supabaseAnonKey);
+  currentClient = client;
+  return client;
+};
+
+
+/**
+ * Returns the currently active Supabase client instance.
+ * This is useful for components that need to interact with Supabase auth state.
+ * @returns The active SupabaseClient or null if not initialized.
+ */
+export const getSupabaseClient = (): SupabaseClient | null => {
+    return currentClient;
+}

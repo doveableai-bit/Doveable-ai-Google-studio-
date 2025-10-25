@@ -1,97 +1,260 @@
-import React, { useState, useEffect } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import ChatPanel from '../components/core/ChatPanel';
-import ThoughtPanel from '../components/core/ThoughtPanel';
-import PreviewPanel from '../components/core/PreviewPanel';
-import UpgradeModal from '../components/core/UpgradeModal';
+import React, { useState, useEffect, useCallback } from 'react';
+import ChatHistoryPanel from '../components/core/ChatHistoryPanel';
+import LivePreviewPanel from '../components/core/LivePreviewPanel';
+import CodeEditorPanel from '../components/core/CodeEditorPanel';
+import TopBar from '../components/layout/TopBar';
+import Footer, { SaveStatus } from '../components/layout/Footer';
+import SettingsModal from '../components/core/SettingsModal';
+import ConnectBackendModal from '../components/core/ConnectBackendModal';
 import { generateWebsiteCode } from '../services/geminiService';
-import { getProfile, spendCoin } from '../services/userService';
-import type { GeneratedCode, UserProfile } from '../types';
+import { getProjects, getProject, saveProject, isStorageConfigured, isUserStorageConfigured, initializeStorage } from '../services/projectService';
+import type { GeneratedCode, Message, Project } from '../types';
+import { useDebounce } from '../hooks/useDebounce';
 
-interface DashboardPageProps {
-  session: Session;
-}
+const initialMessage: Message = {
+  id: 'initial-ai-response',
+  type: 'ai-response',
+  plan: ["Hello! I'm Doveable AI.", "Describe the website you want to build, or ask me to edit the current one."],
+  files: [],
+  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+};
 
-const GENERATION_COST = 1;
-
-const DashboardPage: React.FC<DashboardPageProps> = ({ session }) => {
+const DashboardPage: React.FC = () => {
+  const [messages, setMessages] = useState<Message[]>([initialMessage]);
   const [generatedCode, setGeneratedCode] = useState<GeneratedCode | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
+  
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+
+  const [userStorageConnected, setUserStorageConnected] = useState(isUserStorageConfigured());
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('local');
+
+  const debouncedCode = useDebounce(generatedCode, 2000);
+  const debouncedMessages = useDebounce(messages, 2000);
+
+  const loadUserProjects = useCallback(async () => {
+    if (!isStorageConfigured()) {
+      setProjects([]);
+      return;
+    };
+    try {
+      const userProjects = await getProjects();
+      setProjects(userProjects);
+    } catch (error) {
+      console.error("Could not load projects:", error);
+    }
+  }, []);
   
   useEffect(() => {
-    const fetchProfile = async () => {
-      setIsProfileLoading(true);
-      try {
-        const userProfile = await getProfile(session.user);
-        setProfile(userProfile);
-      } catch (err: any) {
-        console.error("Failed to fetch user profile:", err);
-        setError("Could not load your user profile. Please try refreshing the page.");
-      } finally {
-        setIsProfileLoading(false);
+    loadUserProjects();
+  }, [loadUserProjects, userStorageConnected]);
+  
+  const handleStorageUpdate = () => {
+      initializeStorage(); // Re-init service to pick up new/removed config
+      setUserStorageConnected(isUserStorageConfigured());
+      // After updating storage, reset project state and reload projects
+      handleNew(); 
+      loadUserProjects();
+  };
+
+  const handleAutoSave = useCallback(async () => {
+    if (!isStorageConfigured() || !debouncedCode || saveStatus !== 'unsaved') {
+      return;
+    }
+
+    setSaveStatus('saving');
+    try {
+      let projectToSave = currentProject;
+      if (!projectToSave) {
+        const name = prompt("Enter a name for your new project to enable auto-saving:");
+        if (!name) {
+            setSaveStatus('unsaved');
+            return;
+        };
+        projectToSave = { name } as Project;
       }
-    };
-    fetchProfile();
-  }, [session.user]);
+      
+      const savedProject = await saveProject({
+        ...projectToSave,
+        code: debouncedCode,
+        messages: debouncedMessages,
+      });
 
-  const handleGenerate = async (prompt: string) => {
-    if (!profile || isProfileLoading) {
-      setError("User profile not loaded yet. Please wait a moment and try again.");
-      return;
+      setCurrentProject(savedProject);
+      if (!projects.find(p => p.id === savedProject.id)) {
+        setProjects(prev => [...prev, savedProject]);
+      }
+      setSaveStatus('saved');
+    } catch (error: any) {
+      console.error("Failed to auto-save project:", error);
+      alert(`Error: Could not save the project. ${error.message}`);
+      setSaveStatus('unsaved');
     }
+  }, [debouncedCode, debouncedMessages, currentProject, projects, saveStatus]);
+  
+  useEffect(() => {
+    handleAutoSave();
+  }, [debouncedCode, debouncedMessages, handleAutoSave]);
 
-    const totalCoins = profile.free_coins + profile.purchased_coins;
-    if (totalCoins < GENERATION_COST) {
-      setError(`You don't have enough coins to generate a website. Cost: ${GENERATION_COST} coin.`);
-      setUpgradeModalOpen(true);
-      return;
-    }
+  useEffect(() => {
+      if (generatedCode || messages.length > 1) {
+          setSaveStatus('unsaved');
+      }
+  }, [generatedCode, messages]);
 
+
+  const handleGenerate = async (prompt: string, attachment: { name: string; dataUrl: string; type: string; } | null) => {
     setIsLoading(true);
-    setError(null);
-    setGeneratedCode(null);
+    setViewMode('preview');
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      type: 'user',
+      text: prompt,
+      attachment: attachment || undefined,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    
+    const thoughtMessage: Message = {
+      id: `ai-thought-${Date.now()}`,
+      type: 'ai-thought',
+      status: 'thinking',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }
+
+    setMessages(prev => [...prev, userMessage, thoughtMessage]);
+    const isFirstGeneration = !generatedCode;
 
     try {
-      // First, spend the coin
-      const updatedProfile = await spendCoin(session.user.id, profile.free_coins, profile.purchased_coins);
-      setProfile(prev => ({...prev, ...updatedProfile} as UserProfile));
-
-      // Then, generate the code
-      const code = await generateWebsiteCode(prompt);
+      const code = await generateWebsiteCode(prompt, attachment, generatedCode);
       setGeneratedCode(code);
 
+      const planItems = code.plan.split('\n').filter(item => item.trim().startsWith('*') || item.trim().startsWith('-')).map(item => item.trim().substring(1).trim());
+      
+      const filesGenerated = [];
+      if (code.html) filesGenerated.push('index.html');
+      if (code.css) filesGenerated.push('style.css');
+      if (code.javascript) filesGenerated.push('script.js');
+
+      const responseMessage: Message = {
+        id: `ai-response-${Date.now()}`,
+        type: 'ai-response',
+        plan: planItems,
+        files: filesGenerated,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev.filter(m => m.id !== thoughtMessage.id), responseMessage]);
+
+      if (isFirstGeneration && !isUserStorageConfigured()) {
+        setIsConnectModalOpen(true);
+      }
+
     } catch (err: any) {
-      setError(err.message || 'An unknown error occurred.');
-      // If code generation fails, we might want to refund the coin. This is complex
-      // and for simplicity, we assume the charge is final once initiated.
+      const errorText = err.message || 'An unknown error occurred.';
+      const updatedThoughtMessage: Message = {
+        ...thoughtMessage,
+        status: 'error',
+        error: errorText,
+      };
+      setMessages(prev => prev.map(m => m.id === thoughtMessage.id ? updatedThoughtMessage : m));
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <>
-      <main className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 overflow-hidden">
-        {/* Left Side: Chat and Thought Panels */}
-        <div className="flex flex-col gap-4 overflow-y-auto">
-          <ChatPanel onSendMessage={handleGenerate} isLoading={isLoading || isProfileLoading} />
-          <ThoughtPanel plan={generatedCode?.plan} isLoading={isLoading} error={error} />
-        </div>
+  const handleLoad = async (projectId: string) => {
+    try {
+      const projectData = await getProject(projectId);
+      if (projectData) {
+        setCurrentProject({
+            id: projectData.id,
+            name: projectData.name,
+            user_id: projectData.user_id,
+            created_at: projectData.created_at,
+        });
+        setGeneratedCode(projectData.code);
+        setMessages(projectData.messages);
+        setViewMode('preview');
+        setSaveStatus('saved');
+      }
+    } catch (error) {
+        console.error("Failed to load project:", error);
+        alert("Error: Could not load the project.");
+    }
+  };
+  
+  const handleNew = () => {
+    setCurrentProject(null);
+    setGeneratedCode(null);
+    setMessages([initialMessage]);
+    setViewMode('preview');
+    setSaveStatus('local');
+  }
 
-        {/* Right Side: Preview Panel */}
-        <div className="bg-secondary rounded-lg overflow-hidden border border-gray-700">
-          <PreviewPanel code={generatedCode} isLoading={isLoading} />
+  const handleConnectBackend = () => {
+    setIsConnectModalOpen(false);
+    setIsSettingsOpen(true);
+  };
+
+  const handleContinueWithTemp = () => {
+    setIsConnectModalOpen(false);
+    // No action needed, as the project is already saving to the default temp backend.
+  };
+
+  return (
+    <div className="flex flex-col h-screen font-sans">
+      <TopBar 
+        onLoad={handleLoad}
+        onNew={handleNew}
+        onSettingsClick={() => setIsSettingsOpen(true)}
+        projects={projects}
+        currentProject={currentProject}
+        isUserStorageConfigured={userStorageConnected}
+      />
+      <main className="flex-grow flex overflow-hidden">
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-[40%] bg-panel border-r border-border flex flex-col overflow-hidden">
+            <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} />
+          </div>
+          <div className="flex-1 bg-panel overflow-hidden">
+            {viewMode === 'preview' ? (
+              <LivePreviewPanel 
+                code={generatedCode} 
+                isLoading={isLoading} 
+                onEditClick={() => setViewMode('edit')}
+              />
+            ) : (
+              <CodeEditorPanel
+                initialCode={generatedCode}
+                onCodeChange={setGeneratedCode}
+                onPreviewClick={() => setViewMode('preview')}
+              />
+            )}
+          </div>
         </div>
       </main>
-      <UpgradeModal 
-        isOpen={isUpgradeModalOpen} 
-        onClose={() => setUpgradeModalOpen(false)} 
+      <Footer 
+        currentProject={currentProject} 
+        isUserStorageConfigured={userStorageConnected}
+        saveStatus={saveStatus}
       />
-    </>
+      {isSettingsOpen && (
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)}
+          onStorageUpdate={handleStorageUpdate}
+        />
+      )}
+      <ConnectBackendModal
+        isOpen={isConnectModalOpen}
+        onClose={() => setIsConnectModalOpen(false)}
+        onConnect={handleConnectBackend}
+        onSaveTemp={handleContinueWithTemp}
+      />
+    </div>
   );
 };
 
