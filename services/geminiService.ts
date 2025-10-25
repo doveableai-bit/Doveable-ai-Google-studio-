@@ -79,14 +79,8 @@ export const generateWebsiteCode = async (
   attachment: { dataUrl: string; type: string; } | null,
   existingCode: GeneratedCode | null
 ): Promise<GeneratedCode> => {
-  // Add a specific, upfront check for the API key. This provides a much
-  // clearer error message if the key is not set in the deployment environment.
-  if (!isApiKeyConfigured()) {
-    throw new Error("Failed to generate code: The API key for the AI service is not configured.");
-  }
-
   try {
-    const client = getAiClient(); // Lazily get the client.
+    const client = getAiClient(); // Lazily get the client. Throws if API key is missing.
     let fullPrompt: string;
     const learningContext = learningService.getPersonalizedContextForPrompt(prompt);
 
@@ -168,9 +162,6 @@ export const generateWebsiteCode = async (
     };
   } catch (error) {
     console.error("Error generating website code:", error);
-    // This catch block now handles errors assuming the key was present,
-    // such as an invalid key, API errors, or a malformed response from the model.
-    // The original message is appropriate for these cases.
     throw new Error("Failed to generate code from AI. The response may be malformed or the API key is invalid.");
   }
 };
