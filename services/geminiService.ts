@@ -16,7 +16,24 @@ if (!apiKey) {
   );
 }
 
-const ai = new GoogleGenAI({ apiKey: apiKey || "" });
+let ai: GoogleGenAI | null = null;
+
+/**
+ * Lazily initializes and returns the GoogleGenAI client.
+ * This prevents the app from crashing on start if the API key is not configured.
+ * @returns {GoogleGenAI} The initialized client.
+ * @throws {Error} if the API key is not configured.
+ */
+const getAiClient = (): GoogleGenAI => {
+    if (ai) {
+        return ai;
+    }
+    if (apiKey) {
+        ai = new GoogleGenAI({ apiKey });
+        return ai;
+    }
+    throw new Error("Cannot generate code: Gemini API Key is not configured. Please ensure the API_KEY environment variable is set in your project settings.");
+};
 
 /**
  * Checks if the Gemini API key has been configured in the environment.
@@ -68,10 +85,8 @@ export const generateWebsiteCode = async (
   attachment: { dataUrl: string; type: string; } | null,
   existingCode: GeneratedCode | null
 ): Promise<GeneratedCode> => {
-  if (!apiKey) {
-    throw new Error("Cannot generate code: Gemini API Key is not configured. Please ensure the API_KEY environment variable is set in your project settings.");
-  }
   try {
+    const client = getAiClient(); // Lazily get the client. Throws if API key is missing.
     let fullPrompt: string;
     const learningContext = learningService.getPersonalizedContextForPrompt(prompt);
 
@@ -130,7 +145,7 @@ export const generateWebsiteCode = async (
 
     const contentRequest = { parts: parts };
 
-    const response = await ai.models.generateContent({
+    const response = await client.models.generateContent({
       model: 'gemini-2.5-pro',
       contents: contentRequest,
       config: {
