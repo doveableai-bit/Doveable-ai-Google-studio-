@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { DoveIcon, FolderIcon, PlusCircleIcon } from '../ui/Icons';
+import { DoveIcon, FolderIcon, PlusCircleIcon, MenuIcon } from '../ui/Icons';
 import type { Project } from '../../types';
 
 interface TopBarProps {
@@ -9,6 +8,9 @@ interface TopBarProps {
   projects: Project[];
   currentProject: Project | null;
   isUserStorageConfigured: boolean;
+  onMenuClick: () => void;
+  mobileView: 'chat' | 'preview';
+  onMobileViewChange: (view: 'chat' | 'preview') => void;
 }
 
 const TemplatesIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -18,7 +20,7 @@ const TemplatesIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 
-const TopBar: React.FC<TopBarProps> = ({ onLoad, onNew, projects, currentProject, isUserStorageConfigured }) => {
+const TopBar: React.FC<TopBarProps> = ({ onLoad, onNew, projects, currentProject, isUserStorageConfigured, onMenuClick, mobileView, onMobileViewChange }) => {
   const [projectsDropdownOpen, setProjectsDropdownOpen] = useState(false);
   const projectsDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -33,59 +35,92 @@ const TopBar: React.FC<TopBarProps> = ({ onLoad, onNew, projects, currentProject
   }, []);
 
   return (
-    <header className="flex-shrink-0 flex items-center justify-between px-6 py-3 bg-panel border-b border-border shadow-sm">
-        <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2.5 font-bold text-xl text-text-primary">
-                <DoveIcon className="w-7 h-7 text-indigo-600" />
-                <h1>Doveable AI</h1>
-            </div>
-            <div className="flex items-center gap-2">
-                <button 
-                    onClick={onNew}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium text-text-primary transition-colors">
-                    <PlusCircleIcon className="w-4 h-4" />
-                    New Project
-                </button>
-                <div className="relative" ref={projectsDropdownRef}>
-                    <button 
-                        onClick={() => setProjectsDropdownOpen(!projectsDropdownOpen)}
-                        disabled={!isUserStorageConfigured}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        <FolderIcon className="w-4 h-4" />
-                        My Projects
-                    </button>
-                    {projectsDropdownOpen && isUserStorageConfigured && (
-                        <div className="absolute left-0 mt-2 w-64 bg-panel border border-border rounded-lg shadow-lg z-20">
-                            <div className="p-2">
-                                {projects.length > 0 ? projects.map(p => (
-                                    <button 
-                                        key={p.id} 
-                                        onClick={() => { onLoad(p.id); setProjectsDropdownOpen(false); }}
-                                        className={`w-full text-left px-3 py-2 text-sm rounded-md ${currentProject?.id === p.id ? 'bg-accent text-white' : 'hover:bg-gray-100'}`}
-                                    >
-                                        {p.name}
-                                    </button>
-                                )) : (
-                                    <div className="px-3 py-2 text-sm text-text-secondary">No projects found.</div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+    <header className="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 py-3 bg-panel border-b border-border shadow-sm">
+        {/* --- Desktop View --- */}
+        <div className="hidden lg:flex items-center justify-between w-full">
+            <div className="flex items-center gap-8">
+                <div className="flex items-center gap-2.5 font-bold text-xl text-text-primary">
+                    <DoveIcon className="w-7 h-7 text-indigo-600" />
+                    <h1>Doveable AI</h1>
                 </div>
-                 <button 
-                    onClick={() => alert('Templates coming soon!')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium text-text-primary transition-colors">
-                    <TemplatesIcon className="w-4 h-4" />
-                    Templates
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={onNew}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium text-text-primary transition-colors">
+                        <PlusCircleIcon className="w-4 h-4" />
+                        New Project
+                    </button>
+                    <div className="relative" ref={projectsDropdownRef}>
+                        <button 
+                            onClick={() => setProjectsDropdownOpen(!projectsDropdownOpen)}
+                            disabled={!isUserStorageConfigured}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <FolderIcon className="w-4 h-4" />
+                            My Projects
+                        </button>
+                        {projectsDropdownOpen && isUserStorageConfigured && (
+                            <div className="absolute left-0 mt-2 w-64 bg-panel border border-border rounded-lg shadow-lg z-20">
+                                <div className="p-2">
+                                    {projects.length > 0 ? projects.map(p => (
+                                        <button 
+                                            key={p.id} 
+                                            onClick={() => { onLoad(p.id); setProjectsDropdownOpen(false); }}
+                                            className={`w-full text-left px-3 py-2 text-sm rounded-md ${currentProject?.id === p.id ? 'bg-accent text-white' : 'hover:bg-gray-100'}`}
+                                        >
+                                            {p.name}
+                                        </button>
+                                    )) : (
+                                        <div className="px-3 py-2 text-sm text-text-secondary">No projects found.</div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <button 
+                        onClick={() => alert('Templates coming soon!')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium text-text-primary transition-colors">
+                        <TemplatesIcon className="w-4 h-4" />
+                        Templates
+                    </button>
+                </div>
+            </div>
+        
+            <div className="flex items-center">
+                <div className="flex items-center py-1.5 px-3 rounded-md border border-gray-200 bg-gray-50">
+                    <span className="text-sm font-medium text-text-secondary">
+                        Guest Mode
+                    </span>
+                </div>
             </div>
         </div>
-      
-        <div className="flex items-center">
-            <div className="flex items-center py-1.5 px-3 rounded-md border border-gray-200 bg-gray-50">
-                <span className="text-sm font-medium text-text-secondary">
-                    Guest Mode
-                </span>
+
+        {/* --- Mobile View --- */}
+        <div className="lg:hidden flex items-center justify-between w-full">
+            <button onClick={onMenuClick} className="p-2 -ml-2 text-text-secondary hover:text-accent">
+                <MenuIcon className="w-6 h-6" />
+            </button>
+
+            <div className="flex items-center gap-2 font-bold text-lg text-text-primary">
+                <DoveIcon className="w-6 h-6 text-indigo-600" />
+                <h1>Doveable AI</h1>
+            </div>
+
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                {(['chat', 'preview'] as const).map((view) => (
+                    <button
+                        key={view}
+                        onClick={() => onMobileViewChange(view)}
+                        className={`
+                            px-3 py-1 text-sm rounded-md transition-colors font-medium capitalize
+                            ${mobileView === view
+                            ? 'bg-white text-accent shadow-sm'
+                            : 'bg-transparent text-text-secondary hover:bg-gray-200'
+                            }
+                        `}
+                    >
+                    {view}
+                    </button>
+                ))}
             </div>
         </div>
     </header>

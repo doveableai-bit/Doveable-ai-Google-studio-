@@ -6,8 +6,8 @@ import TopBar from '../components/layout/TopBar';
 import Footer, { SaveStatus } from '../components/layout/Footer';
 import SettingsModal from '../components/core/SettingsModal';
 import ConnectBackendModal from '../components/core/ConnectBackendModal';
-// FIX: Removed ApiKeyWarningBanner import as it is no longer used.
-import { generateWebsiteCode } from '../services/geminiService'; // FIX: Removed isApiKeyConfigured from import.
+import MobileSidebar from '../components/layout/MobileSidebar'; // New import
+import { generateWebsiteCode } from '../services/geminiService';
 import { getProjects, getProject, saveProject, isStorageConfigured, isUserStorageConfigured, initializeStorage } from '../services/projectService';
 import learningService from '../services/learningService';
 import type { GeneratedCode, Message, Project } from '../types';
@@ -34,8 +34,11 @@ const DashboardPage: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('local');
-  // FIX: Removed apiKeyMissing state as per guidelines.
   const [learningInsights, setLearningInsights] = useState<string[]>([]);
+  
+  // State for mobile UI
+  const [mobileView, setMobileView] = useState<'chat' | 'preview'>('preview');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 
   const debouncedCode = useDebounce(generatedCode, 2000);
@@ -64,7 +67,6 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // FIX: Removed API key check as per guidelines.
     refreshLearningInsights();
   }, [refreshLearningInsights]);
 
@@ -142,6 +144,7 @@ const DashboardPage: React.FC = () => {
   const handleGenerate = async (prompt: string, attachment: { name: string; dataUrl: string; type: string; } | null) => {
     setIsLoading(true);
     setViewMode('preview');
+    setMobileView('preview'); // Switch to preview on mobile after generating
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       type: 'user',
@@ -215,6 +218,7 @@ const DashboardPage: React.FC = () => {
         setGeneratedCode(projectData.code);
         setMessages(projectData.messages);
         setViewMode('preview');
+        setMobileView('preview');
         setSaveStatus('saved');
       }
     } catch (error) {
@@ -228,6 +232,7 @@ const DashboardPage: React.FC = () => {
     setGeneratedCode(null);
     setMessages([initialMessage]);
     setViewMode('preview');
+    setMobileView('preview');
     setSaveStatus('local');
   }
 
@@ -238,7 +243,6 @@ const DashboardPage: React.FC = () => {
 
   const handleContinueWithTemp = () => {
     setIsConnectModalOpen(false);
-    // No action needed, as the project is already saving to the default temp backend.
   };
 
   return (
@@ -249,12 +253,26 @@ const DashboardPage: React.FC = () => {
         projects={projects}
         currentProject={currentProject}
         isUserStorageConfigured={userStorageConnected}
+        onMenuClick={() => setIsSidebarOpen(true)}
+        mobileView={mobileView}
+        onMobileViewChange={setMobileView}
       />
-      <main className="flex-grow flex overflow-hidden">
-        <div className="w-[35%] flex-shrink-0 bg-panel border-r border-border flex flex-col overflow-hidden">
+      <MobileSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onLoad={handleLoad}
+        onNew={handleNew}
+        projects={projects}
+        isUserStorageConfigured={userStorageConnected}
+      />
+      <main className="flex-grow flex flex-col lg:flex-row overflow-hidden">
+        {/* Chat Panel */}
+        <div className={`w-full lg:w-[35%] flex-shrink-0 bg-panel lg:border-r border-border flex-col overflow-hidden ${mobileView === 'chat' ? 'flex' : 'hidden'} lg:flex`}>
           <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} />
         </div>
-        <div className="flex-1 bg-panel overflow-hidden">
+        
+        {/* Preview/Edit Panel */}
+        <div className={`flex-1 bg-panel overflow-hidden ${mobileView === 'preview' ? 'flex' : 'hidden'} lg:flex flex-col`}>
           {viewMode === 'preview' ? (
             <LivePreviewPanel 
               code={generatedCode} 
