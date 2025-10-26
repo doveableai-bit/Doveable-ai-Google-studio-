@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ChatHistoryPanel from '../components/core/ChatHistoryPanel';
-import LivePreviewPanel from '../components/core/LivePreviewPanel';
+import LivePreviewPanel from '../components/ui/LivePreviewPanel';
 import CodeEditorPanel from '../components/core/CodeEditorPanel';
 import ProjectsPanel from '../components/core/ProjectsPanel';
 import UpgradePanel from '../components/core/UpgradePanel';
