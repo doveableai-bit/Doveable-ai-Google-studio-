@@ -12,8 +12,8 @@ interface ProjectData extends Project {
 // All projects are saved here by default, with an expiration date.
 const DOVEABLE_SUPABASE_CONFIG: StorageConfig = {
     provider: 'supabase',
-    supabaseUrl: 'https://your-temp-project-id.supabase.co', // Placeholder
-    supabaseAnonKey: 'your-temp-anon-key', // Placeholder
+    supabaseUrl: 'https://ugibwxuskjdwyrdlenjq.supabase.co',
+    supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaWJ3eHVza2pkd3lyZGxlbmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyNzgxNDMsImV4cCI6MjA3Njg1NDE0M30._NhSM_qoWDAIZ4lk26jRH8anoUbk8CgjhnvcXKQoIrY',
 };
 const USER_CONFIG_KEY = 'doveable-user-storage-config';
 

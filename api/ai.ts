@@ -41,17 +41,8 @@ export default async function handler(request: Request) {
   }
 
   try {
-    const apiKey = process.env.API_KEY;
-    // 🧱 Debugging line to confirm the server is reading the key
-    console.log("Edge function loaded, API key present:", !!apiKey);
-
-    if (!apiKey) {
-      console.error("CRITICAL: Gemini API key not found in Vercel server environment.");
-      return new Response(JSON.stringify({ error: "API_KEY environment variable is not configured on the server." }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    // ⚠️ Direct API key (development only)
+    const apiKey = "AIzaSyCH2H9FHoqQaCcmu43ttpkrUsaxi1wI3hw";
 
     const { prompt, attachment, existingCode, learningContext } = await request.json();
     
@@ -104,7 +95,16 @@ export default async function handler(request: Request) {
       }
     });
 
-    const parsedJson = JSON.parse(response.text);
+    // 🔬 Parse the response with improved error handling
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(response.text);
+    } catch (e) {
+        console.error("Failed to parse Gemini response as JSON. Raw text:", response.text);
+        // Also log the full response object for more context, as it might contain safety ratings or other info.
+        console.error("Full Gemini response object:", JSON.stringify(response, null, 2));
+        throw new Error("The AI returned a response that was not valid JSON. Please check the server logs for the raw response.");
+    }
 
     const generatedCode: GeneratedCode = {
       title: parsedJson.title,

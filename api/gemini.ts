@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { GeneratedCode } from "../types";
 
@@ -39,15 +40,8 @@ export default async function handler(request: Request) {
   }
 
   try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      console.error("CRITICAL: Gemini API key not found in Vercel server environment.");
-      const errorMessage = "Cannot generate code: The API_KEY environment variable is not configured correctly on the server.";
-      return new Response(JSON.stringify({ error: errorMessage }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    // ⚠️ Direct API key (development only)
+    const apiKey = "AIzaSyCH2H9FHoqQaCcmu43ttpkrUsaxi1wI3hw";
 
     const { prompt, attachment, existingCode, learningContext } = await request.json();
     
@@ -110,7 +104,14 @@ export default async function handler(request: Request) {
       }
     });
 
-    const parsedJson = JSON.parse(response.text);
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(response.text);
+    } catch (e) {
+      console.error("Failed to parse Gemini response as JSON. Raw text:", response.text);
+      console.error("Full Gemini response object:", JSON.stringify(response, null, 2));
+      throw new Error("The AI returned a response that was not valid JSON. Please check the server logs for the raw response.");
+    }
 
     const generatedCode: GeneratedCode = {
       title: parsedJson.title,
