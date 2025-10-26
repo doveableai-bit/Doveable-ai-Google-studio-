@@ -1,8 +1,8 @@
-// Per user request, this file is updated to use a direct `fetch` call to the Gemini REST API
-// instead of the `@google/genai` SDK's `generateContent` method.
+// This is the primary API endpoint for Doveable AI, handling all code generation requests.
+// It uses a direct `fetch` call to the Gemini REST API.
 import type { GeneratedCode } from "../types";
 
-// Schema description for the prompt. This replaces the SDK's `responseSchema` object.
+// Schema description for the prompt. This helps ensure a consistent JSON output.
 const schemaDescription = `{
   "title": "A short, descriptive title for the web page.",
   "plan": "A step-by-step plan for the changes or creation, formatted as a bulleted list string (e.g., '* Item 1\\n* Item 2').",
@@ -90,8 +90,8 @@ export default async function handler(request: Request) {
     }
     parts.push({ text: fullPrompt });
 
-    // Using gemini-2.5-flash as it is a modern, multimodal model.
-    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // Using gemini-2.5-pro as suggested by the user to leverage a more powerful model.
+    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
     const geminiResponse = await fetch(geminiApiUrl, {
         method: "POST",
@@ -130,7 +130,7 @@ export default async function handler(request: Request) {
     });
 
   } catch (error: any) {
-    console.error("Error in /api/gemini function:", error);
+    console.error("Error in /api/ai function:", error);
     const errorMessage = error.message || 'An unknown error occurred during code generation.';
     return new Response(JSON.stringify({ error: `Server error: ${errorMessage}` }), {
       status: 500,

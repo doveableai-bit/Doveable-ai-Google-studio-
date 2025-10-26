@@ -19,7 +19,8 @@ export const generateWebsiteCode = async (
     // The learning context is generated on the client and passed to the backend.
     const learningContext = learningService.getPersonalizedContextForPrompt(prompt);
     
-    const response = await fetch('/api/gemini', {
+    // As per user request, updated the API endpoint to /api/ai.
+    const response = await fetch('/api/ai', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -31,14 +32,14 @@ export const generateWebsiteCode = async (
         learningContext,
       }),
     });
-
-    const responseData = await response.json();
-
+    
     if (!response.ok) {
-      // Throw an error with the message from the backend for clearer debugging in the UI.
-      throw new Error(responseData.error || `API request failed with status ${response.status}`);
+      // Incorporated user's suggestion for more robust error handling.
+      const errorData = await response.json().catch(() => ({ error: 'API returned a non-JSON error response' }));
+      throw new Error(errorData.error || `API request failed with status ${response.status}`);
     }
 
+    const responseData = await response.json();
     return responseData as GeneratedCode;
 
   } catch (error) {
