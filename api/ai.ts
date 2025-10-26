@@ -24,6 +24,8 @@ export default async function handler(request: Request) {
   }
 
   try {
+    console.log("Edge function loaded, API key present:", !!process.env.API_KEY);
+    
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
       console.error("CRITICAL: Gemini API key not found in Vercel server environment.");
@@ -79,6 +81,8 @@ ${schemaDescription}`;
 
     // 🧠 Robust handling for non-JSON or API errors
     const textResponse = await geminiResponse.text();
+    console.log("Gemini raw output:", textResponse);
+
     let responseData: any = {};
     try {
       responseData = JSON.parse(textResponse);
