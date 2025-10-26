@@ -24,7 +24,11 @@ const initialMessage: Message = {
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
 };
 
-const DashboardPage: React.FC = () => {
+interface DashboardPageProps {
+  onLogout: () => void;
+}
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
   const [messages, setMessages] = useState<Message[]>([initialMessage]);
   const [generatedCode, setGeneratedCode] = useState<GeneratedCode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -314,7 +318,7 @@ const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen font-sans">
+    <div className="flex flex-col h-screen font-sans bg-gradient-to-br from-gray-50 to-purple-50">
       <TopBar 
         onLoad={handleLoad}
         onNew={handleNew}
@@ -325,13 +329,14 @@ const DashboardPage: React.FC = () => {
         onMyProjectsClick={handleShowProjects}
         onUpgradeClick={handleShowUpgrade}
         onContactClick={handleShowContact}
+        onLogout={onLogout}
         coins={coins}
       />
-      <main className="flex-grow flex overflow-hidden">
-        <div className="w-[35%] flex-shrink-0 bg-panel border-r border-border flex flex-col overflow-hidden">
+      <main className="flex-grow flex overflow-hidden p-4 gap-4">
+        <div className="w-[35%] flex-shrink-0 bg-white/70 backdrop-blur-xl border border-white/20 rounded-2xl shadow-lg flex flex-col overflow-hidden">
           <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} coins={coins} />
         </div>
-        <div className="flex-1 bg-panel overflow-hidden">
+        <div className="flex-1 bg-white/70 backdrop-blur-xl border border-white/20 rounded-2xl shadow-lg overflow-hidden">
           {renderMainPanel()}
         </div>
       </main>

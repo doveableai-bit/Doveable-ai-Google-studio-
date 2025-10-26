@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from '../../types';
-import { SendIcon, PlusIcon, XIcon, CheckIcon } from '../ui/Icons';
+import { PlusIcon, XIcon, CheckIcon } from '../ui/Icons';
 
 interface ChatHistoryPanelProps {
   messages: Message[];
@@ -123,9 +123,9 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-border">
-        <h2 className="font-semibold text-lg text-text-primary">Chat</h2>
+    <div className="flex flex-col h-full bg-transparent">
+      <div className="p-4 border-b border-gray-200/50">
+        <h2 className="font-bold text-xl text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Chat</h2>
       </div>
       <div className="flex-grow p-5 overflow-y-auto space-y-6">
         {messages.map((msg) => (
@@ -135,7 +135,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-gray-200/50">
         {learningInsights && learningInsights.length > 0 && (
           <div className="mb-4">
             <h3 className="font-semibold text-sm text-text-primary mb-2">AI Learning Insights</h3>
@@ -167,33 +167,35 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
             </div>
         )}
         <form onSubmit={handleSubmit}>
-          <div className="relative">
-            <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,.doc,.docx,.txt" />
-            <button 
-              type="button" 
-              onClick={handleFileSelect} 
-              className="absolute inset-y-0 left-0 flex items-center pl-3.5 disabled:opacity-50" 
-              disabled={isLoading || coins <= 0}
-              aria-label="Attach file"
-            >
-              <PlusIcon className="w-5 h-5 text-gray-400 hover:text-accent" />
-            </button>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={coins <= 0 ? "You have run out of credits." : "Ask Doveable... (optional with an attachment)"}
-              className="w-full pl-12 pr-12 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-sm disabled:bg-gray-200"
-              disabled={isLoading || coins <= 0}
-            />
-            <button 
-              type="submit" 
-              className="absolute inset-y-0 right-0 flex items-center pr-3.5 disabled:opacity-50" 
-              disabled={isLoading || (!input.trim() && !attachment) || coins <= 0}
-              aria-label="Send message"
-            >
-              <SendIcon className="w-5 h-5 text-gray-400 hover:text-accent" />
-            </button>
+          <div className="bg-white rounded-xl shadow-lg p-2 ring-1 ring-gray-200">
+            <div className="flex items-center gap-2">
+              <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,.doc,.docx,.txt" />
+              <button
+                type="button"
+                onClick={handleFileSelect}
+                className="flex-shrink-0 w-12 h-12 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
+                disabled={isLoading || coins <= 0}
+                aria-label="Attach file"
+              >
+                <PlusIcon className="w-6 h-6" />
+              </button>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={coins <= 0 ? "You have run out of credits." : "Ask Doveable..."}
+                className="w-full border-0 bg-transparent px-2 text-gray-600 placeholder:text-gray-400 focus:ring-0 text-base disabled:bg-transparent"
+                disabled={isLoading || coins <= 0}
+              />
+              <button
+                type="submit"
+                className="flex-shrink-0 w-12 h-12 bg-gray-900 hover:bg-gray-800 text-white rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
+                disabled={isLoading || (!input.trim() && !attachment) || coins <= 0}
+                aria-label="Send message"
+              >
+                <i className="fa-solid fa-arrow-up text-lg"></i>
+              </button>
+            </div>
           </div>
         </form>
       </div>
