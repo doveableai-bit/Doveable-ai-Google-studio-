@@ -125,3 +125,11 @@ export interface LearningData {
   commonRequests: CommonRequest[];
   knowledgeBase: any[];
 }
+
+export interface ContactMessage {
+  id?: string;
+  name: string;
+  email?: string;
+  message: string;
+  created_at?: string;
+}

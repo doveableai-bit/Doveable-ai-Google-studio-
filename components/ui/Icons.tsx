@@ -14,6 +14,20 @@ export const FirebaseIcon: React.FC<IconProps> = (props) => (
     </svg>
 );
 
+export const SupabaseIcon: React.FC<IconProps> = (props) => (
+    <svg width="24" height="24" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <defs>
+            <linearGradient id="supabase-new-grad" x1="0" y1="0" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#3ECF8E"/>
+                <stop offset="1" stopColor="#24B47E"/>
+            </linearGradient>
+        </defs>
+        <path d="M21 0L42 12.125V35.875L21 23.75V0Z" fill="url(#supabase-new-grad)"/>
+        <path d="M21 42L0 29.875V6.125L21 18.25V42Z" fill="url(#supabase-new-grad)"/>
+    </svg>
+);
+
+
 export const DoveIcon: React.FC<IconProps> = (props) => (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M15.5 7.5C15.5 7.5 15.5 12.5 15.5 12.5C15.5 16.5 12 17.5 9.5 17.5C7 17.5 5.5 15.5 5.5 12.5C5.5 9.5 7 7.5 9.5 7.5C12 7.5 15.5 6.5 15.5 6.5Z" />
@@ -108,10 +122,90 @@ export const SettingsIcon: React.FC<IconProps> = (props) => (
     </svg>
 );
 
-export const MenuIcon: React.FC<IconProps> = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <line x1="3" y1="12" x2="21" y2="12"></line>
-    <line x1="3" y1="6" x2="21" y2="6"></line>
-    <line x1="3" y1="18" x2="21" y2="18"></line>
-  </svg>
+export const CoinIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+      <path d="M12 18V6"></path>
+    </svg>
+);
+
+export const MenuBarIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+);
+
+export const StarIcon: React.FC<IconProps> = (props) => (
+    // FIX: Corrected typo in viewBox attribute from `0 0 24" 24"` to `0 0 24 24`.
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+    </svg>
+);
+
+export const InfinityIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round" {...props}>
+       <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+       <path d="M9.828 9.172a4 4 0 1 0 0 5.656a10 10 0 0 0 2.172 -2.828a10 10 0 0 1 2.172 -2.828a4 4 0 1 1 0 5.656"></path>
+    </svg>
+);
+
+export const DatabaseIcon: React.FC<IconProps> = (props) => (
+    // FIX: Corrected typo in viewBox attribute from `0 0 24" 24"` to `0 0 24 24`.
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+    </svg>
+);
+
+export const LifeBuoyIcon: React.FC<IconProps> = (props) => (
+    // FIX: Corrected typo in viewBox attribute from `0 0 24" 24"` to `0 0 24 24`.
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <circle cx="12" cy="12" r="10"></circle>
+        <circle cx="12" cy="12" r="4"></circle>
+        <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"></line>
+        <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"></line>
+        <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"></line>
+        <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"></line>
+    </svg>
+);
+
+export const LayoutTemplateIcon: React.FC<IconProps> = (props) => (
+    // FIX: Corrected typo in viewBox attribute from `0 0 24" 24"` to `0 0 24 24`.
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="3" y1="9" x2="21" y2="9"></line>
+        <line x1="9" y1="21" x2="9" y2="9"></line>
+    </svg>
+);
+
+export const BrainCircuitIcon: React.FC<IconProps> = (props) => (
+    // FIX: Corrected typo in viewBox attribute from `0 0 24" 24"` to `0 0 24 24`.
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M12 2a4.5 4.5 0 0 0-4.5 4.5c0 1.43.68 2.7 1.75 3.52L6.5 13.52a2 2 0 0 0-.5.85L5 18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2l-1-3.63a2 2 0 0 0-.5-.85l-2.75-3.52C15.82 9.2 16.5 7.93 16.5 6.5A4.5 4.5 0 0 0 12 2Z" />
+        <path d="M12 13a2.5 2.5 0 0 0-2.5 2.5V17a2.5 2.5 0 0 0 5 0v-1.5A2.5 2.5 0 0 0 12 13Z" />
+        <path d="M12 2v2" />
+        <path d="M12 11v2" />
+        <path d="M7.5 6.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
+        <path d="M16.5 6.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
+        <path d="M5 18v2" />
+        <path d="M19 18v2" />
+    </svg>
+);
+
+export const MailIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+        <polyline points="22,6 12,13 2,6"></polyline>
+    </svg>
+);
+
+export const UserIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+    </svg>
 );

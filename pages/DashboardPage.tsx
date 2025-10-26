@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ChatHistoryPanel from '../components/core/ChatHistoryPanel';
 import LivePreviewPanel from '../components/core/LivePreviewPanel';
 import CodeEditorPanel from '../components/core/CodeEditorPanel';
+import ProjectsPanel from '../components/core/ProjectsPanel';
+import UpgradePanel from '../components/core/UpgradePanel';
+import ContactPanel from '../components/core/ContactPanel';
 import TopBar from '../components/layout/TopBar';
 import Footer, { SaveStatus } from '../components/layout/Footer';
 import SettingsModal from '../components/core/SettingsModal';
 import ConnectBackendModal from '../components/core/ConnectBackendModal';
-import MobileSidebar from '../components/layout/MobileSidebar'; // New import
-import { generateWebsiteCode } from '../services/geminiService';
+// FIX: Removed ApiKeyWarningBanner import as it is no longer used.
+import { generateWebsiteCode } from '../services/geminiService'; // FIX: Removed isApiKeyConfigured from import.
 import { getProjects, getProject, saveProject, isStorageConfigured, isUserStorageConfigured, initializeStorage } from '../services/projectService';
 import learningService from '../services/learningService';
 import type { GeneratedCode, Message, Project } from '../types';
@@ -25,7 +28,7 @@ const DashboardPage: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([initialMessage]);
   const [generatedCode, setGeneratedCode] = useState<GeneratedCode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
+  const [viewMode, setViewMode] = useState<'preview' | 'edit' | 'projects' | 'upgrade' | 'contact'>('preview');
   
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -35,10 +38,7 @@ const DashboardPage: React.FC = () => {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('local');
   const [learningInsights, setLearningInsights] = useState<string[]>([]);
-  
-  // State for mobile UI
-  const [mobileView, setMobileView] = useState<'chat' | 'preview'>('preview');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [coins, setCoins] = useState(100);
 
 
   const debouncedCode = useDebounce(generatedCode, 2000);
@@ -142,9 +142,20 @@ const DashboardPage: React.FC = () => {
 
 
   const handleGenerate = async (prompt: string, attachment: { name: string; dataUrl: string; type: string; } | null) => {
+    if (coins <= 0) {
+      const noCreditsMessage: Message = {
+        id: `ai-error-${Date.now()}`,
+        type: 'ai-thought',
+        status: 'error',
+        error: "You have run out of credits. Please upgrade to continue generating websites.",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, noCreditsMessage]);
+      return;
+    }
+
     setIsLoading(true);
     setViewMode('preview');
-    setMobileView('preview'); // Switch to preview on mobile after generating
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       type: 'user',
@@ -166,6 +177,7 @@ const DashboardPage: React.FC = () => {
     try {
       const code = await generateWebsiteCode(prompt, attachment, generatedCode);
       setGeneratedCode(code);
+      setCoins(prev => prev - 10); // Deduct credits on success
       
       learningService.updateFromGeneration(prompt, code);
       learningService.recordUserBehavior('generate-code', `prompt: "${prompt}"`, true);
@@ -218,7 +230,6 @@ const DashboardPage: React.FC = () => {
         setGeneratedCode(projectData.code);
         setMessages(projectData.messages);
         setViewMode('preview');
-        setMobileView('preview');
         setSaveStatus('saved');
       }
     } catch (error) {
@@ -232,9 +243,20 @@ const DashboardPage: React.FC = () => {
     setGeneratedCode(null);
     setMessages([initialMessage]);
     setViewMode('preview');
-    setMobileView('preview');
     setSaveStatus('local');
   }
+
+  const handleShowProjects = () => {
+    setViewMode('projects');
+  };
+
+  const handleShowUpgrade = () => {
+    setViewMode('upgrade');
+  };
+
+  const handleShowContact = () => {
+    setViewMode('contact');
+  };
 
   const handleConnectBackend = () => {
     setIsConnectModalOpen(false);
@@ -243,6 +265,54 @@ const DashboardPage: React.FC = () => {
 
   const handleContinueWithTemp = () => {
     setIsConnectModalOpen(false);
+    // No action needed, as the project is already saving to the default temp backend.
+  };
+
+  const renderMainPanel = () => {
+    switch(viewMode) {
+      case 'edit':
+        return (
+          <CodeEditorPanel
+            initialCode={generatedCode}
+            onCodeChange={setGeneratedCode}
+            onPreviewClick={() => setViewMode('preview')}
+          />
+        );
+      case 'projects':
+        return (
+          <ProjectsPanel
+            projects={projects}
+            onLoadProject={handleLoad}
+            onNewProject={handleNew}
+            isUserStorageConfigured={userStorageConnected}
+            onSettingsClick={() => setIsSettingsOpen(true)}
+          />
+        );
+      case 'upgrade':
+        return (
+          <UpgradePanel 
+            onBackToProjects={() => setViewMode('preview')}
+          />
+        );
+      case 'contact':
+        return (
+          <ContactPanel
+            onBackToEditor={() => setViewMode('preview')}
+            isUserStorageConfigured={userStorageConnected}
+            onSettingsClick={() => setIsSettingsOpen(true)}
+          />
+        );
+      case 'preview':
+      default:
+        return (
+          <LivePreviewPanel 
+            code={generatedCode} 
+            isLoading={isLoading} 
+            onEditClick={() => setViewMode('edit')}
+            onSettingsClick={() => setIsSettingsOpen(true)}
+          />
+        );
+    }
   };
 
   return (
@@ -253,40 +323,18 @@ const DashboardPage: React.FC = () => {
         projects={projects}
         currentProject={currentProject}
         isUserStorageConfigured={userStorageConnected}
-        onMenuClick={() => setIsSidebarOpen(true)}
-        mobileView={mobileView}
-        onMobileViewChange={setMobileView}
+        onSettingsClick={() => setIsSettingsOpen(true)}
+        onMyProjectsClick={handleShowProjects}
+        onUpgradeClick={handleShowUpgrade}
+        onContactClick={handleShowContact}
+        coins={coins}
       />
-      <MobileSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onLoad={handleLoad}
-        onNew={handleNew}
-        projects={projects}
-        isUserStorageConfigured={userStorageConnected}
-      />
-      <main className="flex-grow flex flex-col lg:flex-row overflow-hidden">
-        {/* Chat Panel */}
-        <div className={`w-full lg:w-[35%] flex-shrink-0 bg-panel lg:border-r border-border flex-col overflow-hidden ${mobileView === 'chat' ? 'flex' : 'hidden'} lg:flex`}>
-          <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} />
+      <main className="flex-grow flex overflow-hidden">
+        <div className="w-[35%] flex-shrink-0 bg-panel border-r border-border flex flex-col overflow-hidden">
+          <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} coins={coins} />
         </div>
-        
-        {/* Preview/Edit Panel */}
-        <div className={`flex-1 bg-panel overflow-hidden ${mobileView === 'preview' ? 'flex' : 'hidden'} lg:flex flex-col`}>
-          {viewMode === 'preview' ? (
-            <LivePreviewPanel 
-              code={generatedCode} 
-              isLoading={isLoading} 
-              onEditClick={() => setViewMode('edit')}
-              onSettingsClick={() => setIsSettingsOpen(true)}
-            />
-          ) : (
-            <CodeEditorPanel
-              initialCode={generatedCode}
-              onCodeChange={setGeneratedCode}
-              onPreviewClick={() => setViewMode('preview')}
-            />
-          )}
+        <div className="flex-1 bg-panel overflow-hidden">
+          {renderMainPanel()}
         </div>
       </main>
       <Footer 

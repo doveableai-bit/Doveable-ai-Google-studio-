@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from '../../types';
 import { SendIcon, PlusIcon, XIcon, CheckIcon } from '../ui/Icons';
@@ -8,9 +7,10 @@ interface ChatHistoryPanelProps {
   onSendMessage: (message: string, attachment: { name: string; dataUrl: string; type: string; } | null) => void;
   isLoading: boolean;
   learningInsights?: string[];
+  coins: number;
 }
 
-const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMessage, isLoading, learningInsights }) => {
+const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMessage, isLoading, learningInsights, coins }) => {
   const [input, setInput] = useState('');
   const [attachment, setAttachment] = useState<{ name: string; dataUrl: string; type: string; } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +48,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !attachment) || isLoading) return;
+    if ((!input.trim() && !attachment) || isLoading || coins <= 0) return;
     onSendMessage(input, attachment);
     setInput('');
     setAttachment(null);
@@ -125,7 +125,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-border">
-        <h2 className="font-semibold text-lg text-text-primary">AI Chat History</h2>
+        <h2 className="font-semibold text-lg text-text-primary">Chat</h2>
       </div>
       <div className="flex-grow p-5 overflow-y-auto space-y-6">
         {messages.map((msg) => (
@@ -173,7 +173,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
               type="button" 
               onClick={handleFileSelect} 
               className="absolute inset-y-0 left-0 flex items-center pl-3.5 disabled:opacity-50" 
-              disabled={isLoading}
+              disabled={isLoading || coins <= 0}
               aria-label="Attach file"
             >
               <PlusIcon className="w-5 h-5 text-gray-400 hover:text-accent" />
@@ -182,14 +182,14 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask Doveable... (optional with an attachment)"
-              className="w-full pl-12 pr-12 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-sm"
-              disabled={isLoading}
+              placeholder={coins <= 0 ? "You have run out of credits." : "Ask Doveable... (optional with an attachment)"}
+              className="w-full pl-12 pr-12 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-sm disabled:bg-gray-200"
+              disabled={isLoading || coins <= 0}
             />
             <button 
               type="submit" 
               className="absolute inset-y-0 right-0 flex items-center pr-3.5 disabled:opacity-50" 
-              disabled={isLoading || (!input.trim() && !attachment)}
+              disabled={isLoading || (!input.trim() && !attachment) || coins <= 0}
               aria-label="Send message"
             >
               <SendIcon className="w-5 h-5 text-gray-400 hover:text-accent" />

@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { XIcon, FirebaseIcon } from '../ui/Icons';
+import { XIcon, FirebaseIcon, SupabaseIcon } from '../ui/Icons';
 
 interface ConnectBackendModalProps {
   isOpen: boolean;
@@ -8,14 +7,6 @@ interface ConnectBackendModalProps {
   onConnect: () => void;
   onSaveTemp: () => void;
 }
-
-const SupabaseIcon = () => (
-    <svg width="24" height="24" viewBox="0 0 115 115" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M69.1672 34.7818L45.8328 47.4109C45.8328 47.4109 45.8328 67.5891 45.8328 67.5891L69.1672 80.2182C69.1672 80.2182 92.5 67.5891 92.5 57.5C92.5 47.4109 69.1672 34.7818 69.1672 34.7818Z" fill="#3ECF8E"/>
-        <path d="M22.5 57.5C22.5 35.7167 45.8328 22.8218 45.8328 22.8218L69.1672 35.4509C69.1672 35.4509 45.8328 48.0764 45.8328 57.5C45.8328 66.9236 69.1672 79.5491 69.1672 79.5491L45.8328 92.1782C45.8328 92.1782 22.5 79.2833 22.5 57.5Z" fill="#3ECF8E"/>
-    </svg>
-);
-
 
 const ConnectBackendModal: React.FC<ConnectBackendModalProps> = ({ isOpen, onClose, onConnect, onSaveTemp }) => {
   if (!isOpen) return null;

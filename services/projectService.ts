@@ -1,7 +1,7 @@
 
 import { createSupabaseClient } from './supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { GeneratedCode, Message, Project, StorageConfig } from '../types';
+import type { GeneratedCode, Message, Project, StorageConfig, ContactMessage } from '../types';
 
 interface ProjectData extends Project {
     code: GeneratedCode;
@@ -164,4 +164,23 @@ export const saveProject = async (
     }
 
     return data;
+};
+
+export const saveContactMessage = async (
+    message: Omit<ContactMessage, 'id' | 'created_at'>
+): Promise<void> => {
+    if (!supabase) {
+        throw new Error("Storage is not configured. Cannot send message.");
+    }
+    
+    const { error } = await supabase
+        .from('contact_messages')
+        .insert([
+            { name: message.name, email: message.email, message: message.message }
+        ]);
+
+    if (error) {
+        console.error('Error saving contact message:', error);
+        throw new Error(`Failed to send message: ${error.message}`);
+    }
 };

@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import type { GeneratedCode } from '../../types';
-import { EditIcon, SettingsIcon, GithubIcon } from '../ui/Icons';
+import { EditIcon, GithubIcon, SupabaseIcon } from '../ui/Icons';
 
 interface LivePreviewPanelProps {
   code: GeneratedCode | null;
@@ -71,20 +70,20 @@ const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ code, isLoading, on
           ))}
         </div>
         <div className="flex items-center gap-2">
-            <button 
-                onClick={onSettingsClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium text-text-primary transition-colors">
-                <SettingsIcon className="w-4 h-4" />
-                Settings
+            <button
+              onClick={onSettingsClick}
+              className="p-2 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-text-primary transition-colors"
+              title="Connect to Supabase"
+            >
+              <SupabaseIcon className="w-5 h-5" />
             </button>
             <a
               href="#"
               onClick={(e) => { e.preventDefault(); alert('GitHub integration coming soon!'); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium text-text-primary transition-colors"
+              className="p-2 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-text-primary transition-colors"
               title="Connect to GitHub (Coming Soon)"
             >
-              <GithubIcon className="w-4 h-4" />
-              Connect GitHub
+              <GithubIcon className="w-5 h-5" />
             </a>
         </div>
       </header>
