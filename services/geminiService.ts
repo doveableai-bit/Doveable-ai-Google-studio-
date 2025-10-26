@@ -153,7 +153,11 @@ export const generateWebsiteCode = async (
       externalJs: parsedJson.external_js_files || [],
     };
   } catch (error) {
+    // Log the detailed error for debugging purposes.
     console.error("Error generating website code:", error);
-    throw new Error("Failed to generate code from AI. The response may be malformed or the API key is invalid.");
+    
+    // Re-throw the original error to provide a more specific message to the UI.
+    // This will help diagnose if the issue is a missing API key or a different API error.
+    throw error;
   }
 };
