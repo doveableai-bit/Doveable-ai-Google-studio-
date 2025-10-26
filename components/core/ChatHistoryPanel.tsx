@@ -1,6 +1,7 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from '../../types';
-import { PlusIcon, XIcon, CheckIcon } from '../ui/Icons';
+import { XIcon, CheckIcon, ArrowUpIcon } from '../ui/Icons';
 
 interface ChatHistoryPanelProps {
   messages: Message[];
@@ -15,12 +16,20 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
   const [attachment, setAttachment] = useState<{ name: string; dataUrl: string; type: string; } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(scrollToBottom, [messages]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [input]);
 
   const handleFileSelect = () => {
     fileInputRef.current?.click();
@@ -58,17 +67,14 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
     switch (msg.type) {
       case 'user':
         return (
-          <div className="p-4 rounded-lg bg-user-message-bg border-l-4 border-user-message-border">
-            <div className="flex justify-between items-center text-sm text-text-secondary mb-2">
-              <strong>You</strong>
-              <span>{msg.timestamp}</span>
-            </div>
-            {msg.text && <p className="text-text-primary">{msg.text}</p>}
+          <div className="flex flex-col gap-3">
+            <strong className="font-semibold text-text-primary">You</strong>
+            {msg.text && <p className="text-gray-800 text-lg leading-relaxed">{msg.text}</p>}
             {msg.attachment && msg.attachment.type.startsWith('image/') && (
-              <img src={msg.attachment.dataUrl} alt={msg.attachment.name} className="mt-2 rounded-lg max-w-xs max-h-48 object-cover border border-gray-200" />
+              <img src={msg.attachment.dataUrl} alt={msg.attachment.name} className="mt-1 rounded-lg max-w-xs max-h-48 object-cover border border-gray-200" />
             )}
              {msg.attachment && !msg.attachment.type.startsWith('image/') && (
-                <div className="mt-2 p-2.5 bg-blue-100 rounded-md text-sm text-blue-800 border border-blue-200">
+                <div className="mt-1 p-2.5 bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200">
                     Attached file: {msg.attachment.name}
                 </div>
             )}
@@ -76,11 +82,8 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
         );
       case 'ai-thought':
         return (
-          <div className={`p-4 rounded-lg ${msg.status === 'error' ? 'bg-error-bg border-l-4 border-error-text' : 'bg-gray-50'}`}>
-            <div className="flex justify-between items-center text-sm text-text-secondary mb-2">
-              <strong>Doveable AI</strong>
-              <span>{msg.timestamp}</span>
-            </div>
+          <div className="flex flex-col gap-3">
+            <strong className="font-semibold text-text-primary">Doveable AI</strong>
             {msg.status === 'thinking' ? (
                 <div className="flex items-center gap-2 text-text-secondary">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
@@ -89,30 +92,25 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
                     <span>Thinking...</span>
                 </div>
             ) : (
-                <p className="text-error-text font-medium">{msg.error}</p>
+                <p className="text-error-text font-medium text-lg leading-relaxed">{msg.error}</p>
             )}
           </div>
         );
       case 'ai-response':
         return (
-            <div className="p-4 rounded-lg bg-ai-message-bg border-l-4 border-ai-message-border">
-                <div className="flex justify-between items-center text-sm text-text-secondary mb-2">
-                    <strong>Doveable AI</strong>
-                    <span>{msg.timestamp}</span>
-                </div>
+            <div className="flex flex-col gap-3">
+                <strong className="font-semibold text-text-primary">Doveable AI</strong>
                 {msg.files && msg.files.length > 0 && (
-                    <div className="mb-4 p-3 border border-gray-200 rounded-lg bg-white shadow-sm">
-                        <div className="space-y-2">
-                            {msg.files.map((file, index) => (
-                                <div key={index} className="flex items-center justify-between text-sm">
-                                    <span className="text-text-secondary font-mono">{file}</span>
-                                    <CheckIcon className="w-5 h-5 text-green-500" />
-                                </div>
-                            ))}
-                        </div>
+                     <div className="space-y-2">
+                        {msg.files.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between text-sm p-2 bg-gray-50 border border-gray-200 rounded-md">
+                                <span className="text-text-secondary font-mono">{file}</span>
+                                <CheckIcon className="w-5 h-5 text-green-500" />
+                            </div>
+                        ))}
                     </div>
                 )}
-                <ul className="space-y-1.5 list-disc list-inside text-text-primary">
+                <ul className="space-y-1.5 list-disc list-inside text-gray-800 text-lg leading-relaxed">
                     {msg.plan.map((item, index) => <li key={index}>{item}</li>)}
                 </ul>
             </div>
@@ -127,7 +125,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
       <div className="p-4 border-b border-gray-200/50">
         <h2 className="font-bold text-xl text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Chat</h2>
       </div>
-      <div className="flex-grow p-5 overflow-y-auto space-y-6">
+      <div className="flex-grow p-5 overflow-y-auto space-y-8">
         {messages.map((msg) => (
           <div key={msg.id}>
             {renderMessage(msg)}
@@ -167,34 +165,36 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
             </div>
         )}
         <form onSubmit={handleSubmit}>
-          <div className="bg-white rounded-xl shadow-lg p-2 ring-1 ring-gray-200">
-            <div className="flex items-center gap-2">
-              <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,.doc,.docx,.txt" />
-              <button
-                type="button"
-                onClick={handleFileSelect}
-                className="flex-shrink-0 w-12 h-12 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
-                disabled={isLoading || coins <= 0}
-                aria-label="Attach file"
-              >
-                <PlusIcon className="w-6 h-6" />
-              </button>
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={coins <= 0 ? "You have run out of credits." : "Ask Doveable..."}
-                className="w-full border-0 bg-transparent px-2 text-gray-600 placeholder:text-gray-400 focus:ring-0 text-base disabled:bg-transparent"
-                disabled={isLoading || coins <= 0}
-              />
-              <button
-                type="submit"
-                className="flex-shrink-0 w-12 h-12 bg-gray-900 hover:bg-gray-800 text-white rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
-                disabled={isLoading || (!input.trim() && !attachment) || coins <= 0}
-                aria-label="Send message"
-              >
-                <i className="fa-solid fa-arrow-up text-lg"></i>
-              </button>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200/80 p-3 flex flex-col">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={coins <= 0 ? "You have run out of credits." : "Ask Doveable to create a..."}
+              className="w-full border-0 bg-transparent text-gray-800 placeholder:text-gray-500 focus:ring-0 text-lg resize-none overflow-y-hidden px-2 pt-2"
+              disabled={isLoading || coins <= 0}
+              rows={4}
+            />
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center gap-2">
+                <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,.doc,.docx,.txt" />
+                <button type="button" onClick={handleFileSelect} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors disabled:opacity-50" disabled={isLoading || coins <= 0} aria-label="Attach file">
+                  <i className="fa-solid fa-plus"></i>
+                </button>
+                <button type="button" onClick={handleFileSelect} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors disabled:opacity-50" disabled={isLoading || coins <= 0} aria-label="Attach document">
+                  <i className="fa-solid fa-paperclip"></i>
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="w-12 h-12 flex items-center justify-center bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:bg-gray-400"
+                  disabled={isLoading || (!input.trim() && !attachment) || coins <= 0}
+                  aria-label="Send message"
+                >
+                  <ArrowUpIcon className="w-6 h-6" />
+                </button>
+              </div>
             </div>
           </div>
         </form>
