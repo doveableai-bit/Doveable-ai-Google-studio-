@@ -130,11 +130,9 @@ export const generateWebsiteCode = async (
 
     parts.push({ text: fullPrompt });
 
-    const contentRequest = { parts: parts };
-
     const response = await client.models.generateContent({
       model: 'gemini-2.5-pro',
-      contents: contentRequest,
+      contents: [{ parts: parts }],
       config: {
         responseMimeType: "application/json",
         responseSchema: responseSchema,

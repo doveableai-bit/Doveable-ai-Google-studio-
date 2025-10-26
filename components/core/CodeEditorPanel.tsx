@@ -39,7 +39,8 @@ const CodeEditorPanel: React.FC<CodeEditorPanelProps> = ({ initialCode, onCodeCh
 
     const commonTextAreaProps = {
       className: "w-full h-full p-4 font-mono text-sm bg-gray-800 text-gray-200 border-0 rounded-b-lg resize-none focus:outline-none",
-      spellCheck: "false",
+      // FIX: Changed spellCheck from string "false" to boolean false to match React's Booleanish type.
+      spellCheck: false,
     };
 
     switch (activeTab) {
