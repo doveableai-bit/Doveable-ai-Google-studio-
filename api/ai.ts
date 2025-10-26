@@ -1,28 +1,25 @@
-// This is the primary API endpoint for Doveable AI, handling all code generation requests.
-// It uses a direct `fetch` call to the Gemini REST API.
+// Doveable AI – Stable Gemini Backend
+// Handles code generation with consistent JSON responses.
+
 import type { GeneratedCode } from "../types";
 
-// Schema description for the prompt. This helps ensure a consistent JSON output.
 const schemaDescription = `{
-  "title": "A short, descriptive title for the web page.",
-  "plan": "A step-by-step plan for the changes or creation, formatted as a bulleted list string (e.g., '* Item 1\\n* Item 2').",
-  "html_code": "The complete, updated HTML code for the body of the page.",
-  "css_code": "The complete, updated CSS code for the styling. Use modern design principles and ensure it is responsive.",
-  "js_code": "The complete, updated JavaScript code for interactivity. Can be empty if not needed.",
-  "external_css_files": "An array of CDN URLs for any external CSS libraries to include (e.g., Google Fonts, Font Awesome). Can be empty.",
-  "external_js_files": "An array of CDN URLs for any external JavaScript libraries to include (e.g., jQuery, GSAP). Can be empty."
+  "title": "Short descriptive page title",
+  "plan": "A bullet list string (e.g., '* Step 1\\n* Step 2')",
+  "html_code": "Full HTML body code",
+  "css_code": "Complete responsive CSS",
+  "js_code": "Full JavaScript code (optional)",
+  "external_css_files": "Array of CSS CDN URLs (can be empty)",
+  "external_js_files": "Array of JS CDN URLs (can be empty)"
 }`;
 
-// Vercel Edge Function configuration.
-export const config = {
-  runtime: 'edge',
-};
+export const config = { runtime: "edge" };
 
 export default async function handler(request: Request) {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   }
 
@@ -33,108 +30,104 @@ export default async function handler(request: Request) {
       const errorMessage = "Cannot generate code: The API_KEY environment variable is not configured correctly on the server.";
       return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
     const { prompt, attachment, existingCode, learningContext } = await request.json();
-    
+
+    // 🧠 Prompt construction
     let fullPrompt: string;
-    // This prompt engineering is crucial for maintaining the app's features.
     if (existingCode) {
-      fullPrompt = `${learningContext}You are an expert full-stack web developer. You are currently editing an existing website.
-      The user's request is: "${prompt}".
-      ${attachment ? "The user has also provided an image as a visual reference for this edit. Incorporate the style, colors, and content from the image into your changes." : ""}
-  
-      Here is the current code for the website:
-      Title: ${existingCode.title}
-      HTML:
-      \`\`\`html
-      ${existingCode.html}
-      \`\`\`
-  
-      CSS:
-      \`\`\`css
-      ${existingCode.css}
-      \`\`\`
-  
-      JavaScript:
-      \`\`\`javascript
-      ${existingCode.javascript}
-      \`\`\`
-  
-      Your task is to modify the existing code to implement the user's request.
-      First, provide a step-by-step plan. Then, provide the complete, updated code.
-      Your response MUST be a single valid JSON object, without any markdown formatting or other text outside the JSON.
-      The JSON object must conform to this structure: ${schemaDescription}`;
+      fullPrompt = `${learningContext}
+You are an expert full-stack web developer. Edit the existing website based on:
+"${prompt}"
+${attachment ? "Use the attached image for design cues." : ""}
+
+Current code:
+HTML: ${existingCode.html}
+CSS: ${existingCode.css}
+JS: ${existingCode.javascript}
+
+Return a single valid JSON (no markdown) that matches:
+${schemaDescription}`;
     } else {
-      fullPrompt = `${learningContext}You are an expert full-stack web developer tasked with building a single-page website from scratch.
-      The user's request is: "${prompt}".
-      ${attachment ? "The user has also provided an image as a visual reference. Incorporate the style, colors, and content from the image into your design." : ""}
-      Your goal is to generate a complete, visually appealing, and functional website.
-      First, create a title. Second, provide a step-by-step plan. Then, provide the complete code for HTML, CSS, and JavaScript.
-      Your response MUST be a single valid JSON object, without any markdown formatting or other text outside the JSON.
-      The JSON object must conform to this structure: ${schemaDescription}`;
+      fullPrompt = `${learningContext}
+You are an expert full-stack developer. Build a complete single-page website for:
+"${prompt}"
+${attachment ? "Use the attached image for design cues." : ""}
+
+Return a single valid JSON (no markdown) matching:
+${schemaDescription}`;
     }
-    
-    // Construct the request payload for the Gemini REST API.
-    const parts = [];
-    if (attachment && attachment.type.startsWith('image/')) {
-      const base64Data = attachment.dataUrl.split(',')[1];
-      parts.push({
-        inline_data: {
-          mime_type: attachment.type,
-          data: base64Data,
-        },
-      });
+
+    // 🧾 Prepare Gemini request body
+    const parts: any[] = [];
+    if (attachment?.type?.startsWith("image/")) {
+      const base64 = attachment.dataUrl.split(",")[1];
+      parts.push({ inlineData: { mimeType: attachment.type, data: base64 } });
     }
     parts.push({ text: fullPrompt });
 
-    // Using gemini-2.5-pro as suggested by the user to leverage a more powerful model.
-    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
-    const geminiResponse = await fetch(geminiApiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: parts }]
-        })
+    const geminiResponse = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts }] }),
     });
 
-    const responseData = await geminiResponse.json();
-
-    if (!geminiResponse.ok || !responseData.candidates || responseData.candidates.length === 0) {
-        console.error("Gemini API Error:", responseData);
-        const error = responseData.error?.message || "The AI failed to generate a response.";
-        throw new Error(error);
+    // 🧠 Robust handling for non-JSON or API errors
+    const textResponse = await geminiResponse.text();
+    let responseData: any = {};
+    try {
+      responseData = JSON.parse(textResponse);
+    } catch {
+      console.error("Gemini returned non-JSON response:", textResponse);
+      throw new Error("Gemini returned invalid JSON or non-structured output.");
     }
+
+    if (!geminiResponse.ok || !responseData.candidates?.length) {
+      const errMsg = responseData.error?.message || "Gemini API did not return a valid result.";
+      console.error("Gemini API Error:", errMsg);
+      throw new Error(errMsg);
+    }
+
+    // 🧩 Extract JSON text safely
+    const rawText = responseData.candidates[0].content?.parts?.[0]?.text || "";
+    const cleaned = rawText.trim().replace(/^```json\s*/i, "").replace(/```$/i, "");
     
-    // Extract the text, clean it, and parse.
-    const rawText = responseData.candidates[0].content.parts[0].text;
-    const jsonString = rawText.trim().replace(/^```json\n?/, '').replace(/```$/, '');
-    const parsedJson = JSON.parse(jsonString);
+    let parsed: any;
+    try {
+        parsed = JSON.parse(cleaned);
+    } catch (parseError) {
+        console.error("Failed to parse cleaned JSON from Gemini response:", cleaned);
+        throw new Error("The AI returned a malformed JSON structure that could not be parsed.");
+    }
+
 
     const generatedCode: GeneratedCode = {
-      title: parsedJson.title,
-      plan: parsedJson.plan,
-      html: parsedJson.html_code,
-      css: parsedJson.css_code,
-      javascript: parsedJson.js_code,
-      externalCss: parsedJson.external_css_files || [],
-      externalJs: parsedJson.external_js_files || [],
+      title: parsed.title,
+      plan: parsed.plan,
+      html: parsed.html_code,
+      css: parsed.css_code,
+      javascript: parsed.js_code,
+      externalCss: parsed.external_css_files || [],
+      externalJs: parsed.external_js_files || [],
     };
 
+    // ✅ Always return clean JSON
     return new Response(JSON.stringify(generatedCode), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
 
   } catch (error: any) {
-    console.error("Error in /api/ai function:", error);
-    const errorMessage = error.message || 'An unknown error occurred during code generation.';
-    return new Response(JSON.stringify({ error: `Server error: ${errorMessage}` }), {
+    console.error("Server /api/ai error:", error);
+    const safeError = error?.message || "Internal Server Error";
+    return new Response(JSON.stringify({ error: safeError }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   }
 }

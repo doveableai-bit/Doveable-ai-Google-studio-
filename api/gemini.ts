@@ -1,22 +1,34 @@
-// Per user request, this file is updated to use a direct `fetch` call to the Gemini REST API
-// instead of the `@google/genai` SDK's `generateContent` method.
+import { GoogleGenAI, Type } from "@google/genai";
 import type { GeneratedCode } from "../types";
-
-// Schema description for the prompt. This replaces the SDK's `responseSchema` object.
-const schemaDescription = `{
-  "title": "A short, descriptive title for the web page.",
-  "plan": "A step-by-step plan for the changes or creation, formatted as a bulleted list string (e.g., '* Item 1\\n* Item 2').",
-  "html_code": "The complete, updated HTML code for the body of the page.",
-  "css_code": "The complete, updated CSS code for the styling. Use modern design principles and ensure it is responsive.",
-  "js_code": "The complete, updated JavaScript code for interactivity. Can be empty if not needed.",
-  "external_css_files": "An array of CDN URLs for any external CSS libraries to include (e.g., Google Fonts, Font Awesome). Can be empty.",
-  "external_js_files": "An array of CDN URLs for any external JavaScript libraries to include (e.g., jQuery, GSAP). Can be empty."
-}`;
 
 // Vercel Edge Function configuration.
 export const config = {
   runtime: 'edge',
 };
+
+// Define the expected JSON response structure for the Gemini API call.
+const responseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    title: { type: Type.STRING, description: "A short, descriptive title for the web page." },
+    plan: { type: Type.STRING, description: "A step-by-step plan for the changes or creation, formatted as a bulleted list string (e.g., '* Item 1\\n* Item 2')." },
+    html_code: { type: Type.STRING, description: "The complete, updated HTML code for the body of the page." },
+    css_code: { type: Type.STRING, description: "The complete, updated CSS code for the styling. Use modern design principles and ensure it is responsive." },
+    js_code: { type: Type.STRING, description: "The complete, updated JavaScript code for interactivity. Can be empty if not needed." },
+    external_css_files: { 
+      type: Type.ARRAY, 
+      items: { type: Type.STRING },
+      description: "An array of CDN URLs for any external CSS libraries to include (e.g., Google Fonts, Font Awesome). Can be empty."
+    },
+    external_js_files: { 
+      type: Type.ARRAY, 
+      items: { type: Type.STRING },
+      description: "An array of CDN URLs for any external JavaScript libraries to include (e.g., jQuery, GSAP). Can be empty."
+    }
+  },
+  required: ['title', 'plan', 'html_code', 'css_code', 'js_code', 'external_css_files', 'external_js_files']
+};
+
 
 export default async function handler(request: Request) {
   if (request.method !== 'POST') {
@@ -64,26 +76,24 @@ export default async function handler(request: Request) {
       \`\`\`
   
       Your task is to modify the existing code to implement the user's request.
-      First, provide a step-by-step plan. Then, provide the complete, updated code.
-      Your response MUST be a single valid JSON object, without any markdown formatting or other text outside the JSON.
-      The JSON object must conform to this structure: ${schemaDescription}`;
+      First, provide a step-by-step plan. Then, provide the complete, updated code according to the provided JSON schema.`;
     } else {
       fullPrompt = `${learningContext}You are an expert full-stack web developer tasked with building a single-page website from scratch.
       The user's request is: "${prompt}".
       ${attachment ? "The user has also provided an image as a visual reference. Incorporate the style, colors, and content from the image into your design." : ""}
       Your goal is to generate a complete, visually appealing, and functional website.
-      First, create a title. Second, provide a step-by-step plan. Then, provide the complete code for HTML, CSS, and JavaScript.
-      Your response MUST be a single valid JSON object, without any markdown formatting or other text outside the JSON.
-      The JSON object must conform to this structure: ${schemaDescription}`;
+      First, create a title. Second, provide a step-by-step plan. Then, provide the complete code for HTML, CSS, and JavaScript according to the provided JSON schema.`;
     }
+
+    const ai = new GoogleGenAI({ apiKey });
     
-    // Construct the request payload for the Gemini REST API.
-    const parts = [];
+    // Construct the request payload for the Gemini SDK.
+    const parts: any[] = [];
     if (attachment && attachment.type.startsWith('image/')) {
       const base64Data = attachment.dataUrl.split(',')[1];
       parts.push({
-        inline_data: {
-          mime_type: attachment.type,
+        inlineData: {
+          mimeType: attachment.type,
           data: base64Data,
         },
       });
@@ -91,28 +101,16 @@ export default async function handler(request: Request) {
     parts.push({ text: fullPrompt });
 
     // Using gemini-2.5-flash as it is a modern, multimodal model.
-    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-    const geminiResponse = await fetch(geminiApiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: parts }]
-        })
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: { parts: parts },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: responseSchema,
+      }
     });
 
-    const responseData = await geminiResponse.json();
-
-    if (!geminiResponse.ok || !responseData.candidates || responseData.candidates.length === 0) {
-        console.error("Gemini API Error:", responseData);
-        const error = responseData.error?.message || "The AI failed to generate a response.";
-        throw new Error(error);
-    }
-    
-    // Extract the text, clean it, and parse.
-    const rawText = responseData.candidates[0].content.parts[0].text;
-    const jsonString = rawText.trim().replace(/^```json\n?/, '').replace(/```$/, '');
-    const parsedJson = JSON.parse(jsonString);
+    const parsedJson = JSON.parse(response.text);
 
     const generatedCode: GeneratedCode = {
       title: parsedJson.title,

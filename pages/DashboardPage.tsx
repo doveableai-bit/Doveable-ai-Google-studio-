@@ -298,8 +298,6 @@ const DashboardPage: React.FC = () => {
         return (
           <ContactPanel
             onBackToEditor={() => setViewMode('preview')}
-            isUserStorageConfigured={userStorageConnected}
-            onSettingsClick={() => setIsSettingsOpen(true)}
           />
         );
       case 'preview':
