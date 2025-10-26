@@ -42,6 +42,9 @@ export default async function handler(request: Request) {
 
   try {
     const apiKey = process.env.API_KEY;
+    // 🧱 Debugging line to confirm the server is reading the key
+    console.log("Edge function loaded, API key present:", !!apiKey);
+
     if (!apiKey) {
       console.error("CRITICAL: Gemini API key not found in Vercel server environment.");
       return new Response(JSON.stringify({ error: "API_KEY environment variable is not configured on the server." }), {
@@ -119,8 +122,23 @@ export default async function handler(request: Request) {
     });
 
   } catch (error: any) {
-    console.error("Error in /api/ai function:", error);
-    const errorMessage = error.message || 'An unknown error occurred during code generation.';
+    // 🪄 Log the raw error from Gemini for debugging
+    console.error("Gemini raw output:", JSON.stringify(error, null, 2));
+
+    let errorMessage = 'An unknown server error occurred.';
+    // Extract a user-friendly error message from the Gemini SDK error object
+    if (error && typeof error === 'object') {
+        if ('message' in error) {
+            errorMessage = error.message as string;
+        }
+        // The SDK often wraps the core error in a 'cause' property
+        if ('cause' in error && error.cause && typeof error.cause === 'object' && 'message' in error.cause) {
+           errorMessage = error.cause.message as string;
+        }
+    } else if (typeof error === 'string') {
+        errorMessage = error;
+    }
+
     return new Response(JSON.stringify({ error: `Server error: ${errorMessage}` }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
