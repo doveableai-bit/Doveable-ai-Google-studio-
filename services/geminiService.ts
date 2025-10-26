@@ -16,9 +16,9 @@ const getAiClient = (): GoogleGenAI => {
         return ai;
     }
     
-    // Access the API key just-in-time to prevent module-level errors.
-    // Check for VITE_API_KEY as a fallback to support common Vercel/Vite configurations.
-    const apiKey: string | undefined = process.env.API_KEY || process.env.VITE_API_KEY;
+    // FIX: Per coding guidelines, the API key must be obtained from process.env.API_KEY.
+    // This resolves the TypeScript error for `import.meta.env`.
+    const apiKey: string | undefined = process.env.API_KEY;
 
     if (apiKey) {
         ai = new GoogleGenAI({ apiKey });
@@ -26,9 +26,9 @@ const getAiClient = (): GoogleGenAI => {
     }
     
     console.error(
-      "CRITICAL: Gemini API key not found. Please ensure the API_KEY or VITE_API_KEY environment variable is configured. AI functionality will be disabled."
+      "CRITICAL: Gemini API key not found. Please ensure the API_KEY environment variable is configured. AI functionality will be disabled."
     );
-    throw new Error("Cannot generate code: Gemini API Key is not configured. Please ensure the API_KEY or VITE_API_KEY environment variable is set in your project settings.");
+    throw new Error("Cannot generate code: Gemini API Key is not configured. Please ensure the API_KEY environment variable is set.");
 };
 
 const responseSchema = {
