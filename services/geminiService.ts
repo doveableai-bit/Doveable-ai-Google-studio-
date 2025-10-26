@@ -7,7 +7,7 @@ let ai: GoogleGenAI | null = null;
 /**
  * Lazily initializes and returns the GoogleGenAI client.
  * This prevents the app from crashing on start if the API key is not configured
- * by deferring the access to `process.env.API_KEY`.
+ * by deferring the access to environment variables.
  * @returns {GoogleGenAI} The initialized client.
  * @throws {Error} if the API key is not configured when this function is called.
  */
@@ -17,7 +17,8 @@ const getAiClient = (): GoogleGenAI => {
     }
     
     // Access the API key just-in-time to prevent module-level errors.
-    const apiKey: string | undefined = process.env.API_KEY;
+    // Check for VITE_API_KEY as a fallback to support common Vercel/Vite configurations.
+    const apiKey: string | undefined = process.env.API_KEY || process.env.VITE_API_KEY;
 
     if (apiKey) {
         ai = new GoogleGenAI({ apiKey });
@@ -25,9 +26,9 @@ const getAiClient = (): GoogleGenAI => {
     }
     
     console.error(
-      "CRITICAL: Gemini API key not found. Please ensure the API_KEY environment variable is configured. AI functionality will be disabled."
+      "CRITICAL: Gemini API key not found. Please ensure the API_KEY or VITE_API_KEY environment variable is configured. AI functionality will be disabled."
     );
-    throw new Error("Cannot generate code: Gemini API Key is not configured. Please ensure the API_KEY environment variable is set in your project settings.");
+    throw new Error("Cannot generate code: Gemini API Key is not configured. Please ensure the API_KEY or VITE_API_KEY environment variable is set in your project settings.");
 };
 
 const responseSchema = {
@@ -132,7 +133,7 @@ export const generateWebsiteCode = async (
 
     const response = await client.models.generateContent({
       model: 'gemini-2.5-pro',
-      contents: [{ parts: parts }],
+      contents: { parts: parts },
       config: {
         responseMimeType: "application/json",
         responseSchema: responseSchema,
