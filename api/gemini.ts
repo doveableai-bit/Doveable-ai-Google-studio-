@@ -121,7 +121,7 @@ export default async function handler(request: Request) {
     parts.push({ text: fullPrompt });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.5-flash',
       contents: { parts },
       config: {
         responseMimeType: "application/json",
