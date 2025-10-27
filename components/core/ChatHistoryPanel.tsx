@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from '../../types';
 import { XIcon, CheckIcon, ArrowUpIcon } from '../ui/Icons';
@@ -9,9 +8,10 @@ interface ChatHistoryPanelProps {
   isLoading: boolean;
   learningInsights?: string[];
   coins: number;
+  isApiKeyConfigured: boolean;
 }
 
-const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMessage, isLoading, learningInsights, coins }) => {
+const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMessage, isLoading, learningInsights, coins, isApiKeyConfigured }) => {
   const [input, setInput] = useState('');
   const [attachment, setAttachment] = useState<{ name: string; dataUrl: string; type: string; } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +57,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !attachment) || isLoading || coins <= 0) return;
+    if ((!input.trim() && !attachment) || isLoading || coins <= 0 || !isApiKeyConfigured) return;
     onSendMessage(input, attachment);
     setInput('');
     setAttachment(null);
@@ -170,18 +170,18 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={coins <= 0 ? "You have run out of credits." : "Ask Doveable to create a..."}
+              placeholder={!isApiKeyConfigured ? "API key not configured on server." : coins <= 0 ? "You have run out of credits." : "Ask Doveable to create a..."}
               className="w-full border-0 bg-transparent text-gray-800 placeholder:text-gray-500 focus:ring-0 text-lg resize-none overflow-y-hidden px-2 pt-2"
-              disabled={isLoading || coins <= 0}
+              disabled={isLoading || coins <= 0 || !isApiKeyConfigured}
               rows={4}
             />
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2">
                 <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,.doc,.docx,.txt" />
-                <button type="button" onClick={handleFileSelect} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors disabled:opacity-50" disabled={isLoading || coins <= 0} aria-label="Attach file">
+                <button type="button" onClick={handleFileSelect} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors disabled:opacity-50" disabled={isLoading || coins <= 0 || !isApiKeyConfigured} aria-label="Attach file">
                   <i className="fa-solid fa-plus"></i>
                 </button>
-                <button type="button" onClick={handleFileSelect} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors disabled:opacity-50" disabled={isLoading || coins <= 0} aria-label="Attach document">
+                <button type="button" onClick={handleFileSelect} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors disabled:opacity-50" disabled={isLoading || coins <= 0 || !isApiKeyConfigured} aria-label="Attach document">
                   <i className="fa-solid fa-paperclip"></i>
                 </button>
               </div>
@@ -189,7 +189,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ messages, onSendMes
                 <button
                   type="submit"
                   className="w-12 h-12 flex items-center justify-center bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:bg-gray-400"
-                  disabled={isLoading || (!input.trim() && !attachment) || coins <= 0}
+                  disabled={isLoading || (!input.trim() && !attachment) || coins <= 0 || !isApiKeyConfigured}
                   aria-label="Send message"
                 >
                   <ArrowUpIcon className="w-6 h-6" />

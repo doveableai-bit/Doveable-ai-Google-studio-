@@ -9,7 +9,7 @@ import TopBar from '../components/layout/TopBar';
 import Footer, { SaveStatus } from '../components/layout/Footer';
 import SettingsModal from '../components/core/SettingsModal';
 import ConnectBackendModal from '../components/core/ConnectBackendModal';
-// FIX: Removed ApiKeyWarningBanner import as it is no longer used.
+import ApiKeyWarningBanner from '../components/core/ApiKeyWarningBanner';
 import { generateWebsiteCode } from '../services/geminiService'; // FIX: Removed isApiKeyConfigured from import.
 import { getProjects, getProject, saveProject, isStorageConfigured, isUserStorageConfigured, initializeStorage } from '../services/projectService';
 import learningService from '../services/learningService';
@@ -43,10 +43,29 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('local');
   const [learningInsights, setLearningInsights] = useState<string[]>([]);
   const [coins, setCoins] = useState(100);
+  const [isApiKeyConfigured, setIsApiKeyConfigured] = useState(true);
 
 
   const debouncedCode = useDebounce(generatedCode, 2000);
   const debouncedMessages = useDebounce(messages, 2000);
+
+  useEffect(() => {
+    const checkApiStatus = async () => {
+        try {
+            const response = await fetch('/api/status');
+            if(response.ok) {
+                const data = await response.json();
+                setIsApiKeyConfigured(data.isApiKeyConfigured);
+            } else {
+                setIsApiKeyConfigured(false);
+            }
+        } catch (error) {
+            console.error("API status check failed:", error);
+            setIsApiKeyConfigured(false);
+        }
+    };
+    checkApiStatus();
+  }, []);
 
   const refreshLearningInsights = useCallback(() => {
     const data = learningService.getLearningData();
@@ -319,6 +338,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
 
   return (
     <div className="flex flex-col h-screen font-sans bg-gradient-to-br from-gray-50 to-purple-50">
+      {!isApiKeyConfigured && <ApiKeyWarningBanner />}
       <TopBar 
         onLoad={handleLoad}
         onNew={handleNew}
@@ -334,7 +354,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
       />
       <main className="flex-grow flex overflow-hidden p-4 gap-4">
         <div className="w-[35%] flex-shrink-0 bg-white/70 backdrop-blur-xl border border-white/20 rounded-2xl shadow-lg flex flex-col overflow-hidden">
-          <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} coins={coins} />
+          <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} coins={coins} isApiKeyConfigured={isApiKeyConfigured} />
         </div>
         <div className="flex-1 bg-white/70 backdrop-blur-xl border border-white/20 rounded-2xl shadow-lg overflow-hidden">
           {renderMainPanel()}
