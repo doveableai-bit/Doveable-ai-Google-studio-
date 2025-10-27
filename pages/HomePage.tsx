@@ -107,60 +107,53 @@ const HomePage: React.FC<HomePageProps> = ({ onAuthSuccess }) => {
             </div>
 
             <div className="mt-12 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
-                {/* Skeleton Card 1 */}
-                <div className="group relative">
-                    <div className="aspect-[16/9] w-full overflow-hidden rounded-lg bg-white border-2 border-dashed border-gray-300 p-4 flex items-center justify-center">
-                        <div className="w-full animate-pulse space-y-3">
-                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                            <div className="h-4 bg-gray-200 rounded"></div>
-                            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                {/* Card 1: E-commerce Store */}
+                <a href="#" className="group relative block">
+                    <div className="aspect-[16/9] w-full overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-80 transition-opacity shadow-inner">
+                        <div className="w-full h-full bg-gradient-to-br from-green-300 to-emerald-500 flex items-center justify-center">
+                            <i className="fa-solid fa-store text-5xl text-white opacity-50"></i>
                         </div>
                     </div>
-                    <div className="mt-4 flex justify-between">
-                        <div className="flex items-center gap-x-3">
-                           <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-                           <div>
-                              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-                           </div>
+                    <div className="mt-4 flex items-center gap-x-3">
+                        <div className="w-9 h-9 bg-pink-200 rounded-full flex items-center justify-center font-bold text-pink-700 flex-shrink-0">A</div>
+                        <div>
+                            <h3 className="text-md font-semibold text-gray-900 group-hover:text-accent transition-colors">GreenLeaf Planters</h3>
+                            <p className="text-sm text-gray-500">by Anna Wong</p>
                         </div>
                     </div>
-                </div>
-                {/* Skeleton Card 2 */}
-                <div className="group relative hidden sm:block">
-                     <div className="aspect-[16/9] w-full overflow-hidden rounded-lg bg-white border-2 border-dashed border-gray-300 p-4 flex items-center justify-center">
-                        <div className="w-full animate-pulse space-y-3">
-                           <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                            <div className="h-4 bg-gray-200 rounded"></div>
-                            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                </a>
+
+                {/* Card 2: Portfolio Site */}
+                <a href="#" className="group relative hidden sm:block">
+                    <div className="aspect-[16/9] w-full overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-80 transition-opacity shadow-inner">
+                        <div className="w-full h-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center">
+                            <i className="fa-solid fa-camera-retro text-5xl text-white opacity-50"></i>
                         </div>
                     </div>
-                    <div className="mt-4 flex justify-between">
-                        <div className="flex items-center gap-x-3">
-                           <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-                           <div>
-                              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-                           </div>
+                    <div className="mt-4 flex items-center gap-x-3">
+                        <div className="w-9 h-9 bg-sky-200 rounded-full flex items-center justify-center font-bold text-sky-700 flex-shrink-0">M</div>
+                        <div>
+                            <h3 className="text-md font-semibold text-gray-900 group-hover:text-accent transition-colors">Lens & Light</h3>
+                            <p className="text-sm text-gray-500">by Mark Chen</p>
                         </div>
                     </div>
-                </div>
-                {/* Skeleton Card 3 */}
-                 <div className="group relative hidden lg:block">
-                     <div className="aspect-[16/9] w-full overflow-hidden rounded-lg bg-white border-2 border-dashed border-gray-300 p-4 flex items-center justify-center">
-                        <div className="w-full animate-pulse space-y-3">
-                           <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                            <div className="h-4 bg-gray-200 rounded"></div>
-                            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                </a>
+
+                {/* Card 3: SaaS Landing Page */}
+                <a href="#" className="group relative hidden lg:block">
+                    <div className="aspect-[16/9] w-full overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-80 transition-opacity shadow-inner">
+                        <div className="w-full h-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center">
+                            <i className="fa-solid fa-rocket text-5xl text-white opacity-50"></i>
                         </div>
                     </div>
-                    <div className="mt-4 flex justify-between">
-                        <div className="flex items-center gap-x-3">
-                           <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-                           <div>
-                              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-                           </div>
+                    <div className="mt-4 flex items-center gap-x-3">
+                        <div className="w-9 h-9 bg-amber-200 rounded-full flex items-center justify-center font-bold text-amber-700 flex-shrink-0">S</div>
+                        <div>
+                            <h3 className="text-md font-semibold text-gray-900 group-hover:text-accent transition-colors">TaskFlow</h3>
+                            <p className="text-sm text-gray-500">by Sarah Jones</p>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
       </section>
