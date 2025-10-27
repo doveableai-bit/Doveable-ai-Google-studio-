@@ -41,8 +41,13 @@ export default async function handler(request: Request) {
   }
 
   try {
-    // ⚠️ Direct API key (development only)
-    const apiKey = "AIzaSyCH2H9FHoqQaCcmu43ttpkrUsaxi1wI3hw";
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'API key is not configured on the server.' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     const { prompt, attachment, existingCode, learningContext } = await request.json();
     
