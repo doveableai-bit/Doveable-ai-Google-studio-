@@ -1,383 +1,223 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import ChatHistoryPanel from '../components/core/ChatHistoryPanel';
-import LivePreviewPanel from '../components/ui/LivePreviewPanel';
-import CodeEditorPanel from '../components/core/CodeEditorPanel';
-import ProjectsPanel from '../components/core/ProjectsPanel';
-import UpgradePanel from '../components/core/UpgradePanel';
-import ContactPanel from '../components/core/ContactPanel';
-import TopBar from '../components/layout/TopBar';
-import Footer, { SaveStatus } from '../components/layout/Footer';
-import SettingsModal from '../components/core/SettingsModal';
-import ConnectBackendModal from '../components/core/ConnectBackendModal';
-import ApiKeyWarningBanner from '../components/core/ApiKeyWarningBanner';
-import { generateWebsiteCode } from '../services/geminiService'; // FIX: Removed isApiKeyConfigured from import.
-import { getProjects, getProject, saveProject, isStorageConfigured, isUserStorageConfigured, initializeStorage } from '../services/projectService';
-import learningService from '../services/learningService';
-import type { GeneratedCode, Message, Project } from '../types';
-import { useDebounce } from '../hooks/useDebounce';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import type { Project, UserInfo } from '../types';
+import projectService from '../services/projectService';
 
-const initialMessage: Message = {
-  id: 'initial-ai-response',
-  type: 'ai-response',
-  plan: ["Hello! I'm Doveable AI.", "Describe the website you want to build, or ask me to edit the current one."],
-  files: [],
-  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-};
-
-interface DashboardPageProps {
-  onLogout: () => void;
-}
-
-const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
-  const [messages, setMessages] = useState<Message[]>([initialMessage]);
-  const [generatedCode, setGeneratedCode] = useState<GeneratedCode | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'preview' | 'edit' | 'projects' | 'upgrade' | 'contact'>('preview');
-  
+const DashboardPage = () => {
+  const { signOut } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
-
-  const [userStorageConnected, setUserStorageConnected] = useState(isUserStorageConfigured());
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('local');
-  const [learningInsights, setLearningInsights] = useState<string[]>([]);
-  const [coins, setCoins] = useState(100);
-  const [isApiKeyConfigured, setIsApiKeyConfigured] = useState(true);
-
-
-  const debouncedCode = useDebounce(generatedCode, 2000);
-  const debouncedMessages = useDebounce(messages, 2000);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectDescription, setNewProjectDescription] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const checkApiStatus = async () => {
-        try {
-            const response = await fetch('/api/status');
-            if(response.ok) {
-                const data = await response.json();
-                setIsApiKeyConfigured(data.isApiKeyConfigured);
-            } else {
-                setIsApiKeyConfigured(false);
-            }
-        } catch (error) {
-            console.error("API status check failed:", error);
-            setIsApiKeyConfigured(false);
-        }
-    };
-    checkApiStatus();
+    fetchUserData();
+    fetchProjects();
   }, []);
 
-  const refreshLearningInsights = useCallback(() => {
-    const data = learningService.getLearningData();
-    const newInsights: string[] = [];
-
-    if (data.userPreferences?.preferredTechStack?.length) {
-        newInsights.push(`Prefers: ${data.userPreferences.preferredTechStack.join(', ')}`);
-    }
-    const commonReq = data.commonRequests.sort((a,b) => b.frequency - a.frequency)[0];
-    if (commonReq) {
-        newInsights.push(`Often asks for: "${commonReq.request.substring(0, 40)}${commonReq.request.length > 40 ? '...' : ''}"`);
-    }
-    if (data.projectPatterns.length > 0) {
-        const uniquePatterns = [...new Set(data.projectPatterns.map(p => p.name))];
-        if(uniquePatterns.length > 0)
-            newInsights.push(`Has experience building: ${uniquePatterns.join(', ')}`);
-    }
-    
-    if (newInsights.length > 0) {
-        setLearningInsights(newInsights);
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshLearningInsights();
-  }, [refreshLearningInsights]);
-
-  const loadUserProjects = useCallback(async () => {
-    if (!isStorageConfigured()) {
-      setProjects([]);
-      return;
-    };
+  const fetchUserData = async () => {
     try {
-      const userProjects = await getProjects();
-      setProjects(userProjects);
+      const data = await projectService.getUserInfo();
+      setUserInfo(data);
     } catch (error) {
-      console.error("Could not load projects:", error);
+      console.error('Error fetching user data:', error);
     }
-  }, []);
-  
-  useEffect(() => {
-    loadUserProjects();
-  }, [loadUserProjects, userStorageConnected]);
-  
-  const handleStorageUpdate = () => {
-      initializeStorage(); // Re-init service to pick up new/removed config
-      setUserStorageConnected(isUserStorageConfigured());
-      // After updating storage, reset project state and reload projects
-      handleNew(); 
-      loadUserProjects();
   };
 
-  const handleAutoSave = useCallback(async () => {
-    if (!isStorageConfigured() || !debouncedCode || saveStatus !== 'unsaved') {
-      return;
-    }
-
-    setSaveStatus('saving');
+  const fetchProjects = async () => {
     try {
-      let projectToSave = currentProject;
-      if (!projectToSave) {
-        const name = prompt("Enter a name for your new project to enable auto-saving:");
-        if (!name) {
-            setSaveStatus('unsaved');
-            return;
-        };
-        projectToSave = { name } as Project;
-      }
-      
-      const savedProject = await saveProject({
-        ...projectToSave,
-        code: debouncedCode,
-        messages: debouncedMessages,
-      });
-
-      setCurrentProject(savedProject);
-      if (!projects.find(p => p.id === savedProject.id)) {
-        setProjects(prev => [...prev, savedProject]);
-      }
-      setSaveStatus('saved');
-    } catch (error: any) {
-      console.error("Failed to auto-save project:", error);
-      alert(`Error: Could not save the project. ${error.message}`);
-      setSaveStatus('unsaved');
-    }
-  }, [debouncedCode, debouncedMessages, currentProject, projects, saveStatus]);
-  
-  useEffect(() => {
-    handleAutoSave();
-  }, [debouncedCode, debouncedMessages, handleAutoSave]);
-
-  useEffect(() => {
-      if (generatedCode || messages.length > 1) {
-          setSaveStatus('unsaved');
-      }
-  }, [generatedCode, messages]);
-
-
-  const handleGenerate = async (prompt: string, attachment: { name: string; dataUrl: string; type: string; } | null) => {
-    if (coins <= 0) {
-      const noCreditsMessage: Message = {
-        id: `ai-error-${Date.now()}`,
-        type: 'ai-thought',
-        status: 'error',
-        error: "You have run out of credits. Please upgrade to continue generating websites.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages(prev => [...prev, noCreditsMessage]);
-      return;
-    }
-
-    setIsLoading(true);
-    setViewMode('preview');
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      type: 'user',
-      text: prompt,
-      attachment: attachment || undefined,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    
-    const thoughtMessage: Message = {
-      id: `ai-thought-${Date.now()}`,
-      type: 'ai-thought',
-      status: 'thinking',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }
-
-    setMessages(prev => [...prev, userMessage, thoughtMessage]);
-    const isFirstGeneration = !generatedCode;
-
-    try {
-      const code = await generateWebsiteCode(prompt, attachment, generatedCode);
-      setGeneratedCode(code);
-      setCoins(prev => prev - 10); // Deduct credits on success
-      
-      learningService.updateFromGeneration(prompt, code);
-      learningService.recordUserBehavior('generate-code', `prompt: "${prompt}"`, true);
-      refreshLearningInsights();
-
-      const planItems = code.plan.split('\n').filter(item => item.trim().startsWith('*') || item.trim().startsWith('-')).map(item => item.trim().substring(1).trim());
-      
-      const filesGenerated = [];
-      if (code.html) filesGenerated.push('index.html');
-      if (code.css) filesGenerated.push('style.css');
-      if (code.javascript) filesGenerated.push('script.js');
-
-      const responseMessage: Message = {
-        id: `ai-response-${Date.now()}`,
-        type: 'ai-response',
-        plan: planItems,
-        files: filesGenerated,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages(prev => [...prev.filter(m => m.id !== thoughtMessage.id), responseMessage]);
-
-      if (isFirstGeneration && !isUserStorageConfigured()) {
-        setIsConnectModalOpen(true);
-      }
-
-    } catch (err: any) {
-      learningService.recordUserBehavior('generate-code', `prompt: "${prompt}"`, false);
-      const errorText = err.message || 'An unknown error occurred.';
-      const updatedThoughtMessage: Message = {
-        ...thoughtMessage,
-        status: 'error',
-        error: errorText,
-      };
-      setMessages(prev => prev.map(m => m.id === thoughtMessage.id ? updatedThoughtMessage : m));
+      const data = await projectService.getProjects();
+      setProjects(data);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleLoad = async (projectId: string) => {
+  const createProject = async () => {
+    if (!newProjectName.trim()) return;
+
     try {
-      const projectData = await getProject(projectId);
-      if (projectData) {
-        setCurrentProject({
-            id: projectData.id,
-            name: projectData.name,
-            user_id: projectData.user_id,
-            created_at: projectData.created_at,
-        });
-        setGeneratedCode(projectData.code);
-        setMessages(projectData.messages);
-        setViewMode('preview');
-        setSaveStatus('saved');
-      }
+      const newProject = await projectService.createProject(
+        newProjectName,
+        newProjectDescription
+      );
+      setProjects([...projects, newProject]);
+      setShowNewProject(false);
+      setNewProjectName('');
+      setNewProjectDescription('');
+      navigate(`/project/${newProject.id}`);
     } catch (error) {
-        console.error("Failed to load project:", error);
-        alert("Error: Could not load the project.");
+      console.error('Error creating project:', error);
     }
   };
-  
-  const handleNew = () => {
-    setCurrentProject(null);
-    setGeneratedCode(null);
-    setMessages([initialMessage]);
-    setViewMode('preview');
-    setSaveStatus('local');
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-xl text-gray-600">Loading...</div>
+      </div>
+    );
   }
 
-  const handleShowProjects = () => {
-    setViewMode('projects');
-  };
-
-  const handleShowUpgrade = () => {
-    setViewMode('upgrade');
-  };
-
-  const handleShowContact = () => {
-    setViewMode('contact');
-  };
-
-  const handleConnectBackend = () => {
-    setIsConnectModalOpen(false);
-    setIsSettingsOpen(true);
-  };
-
-  const handleContinueWithTemp = () => {
-    setIsConnectModalOpen(false);
-    // No action needed, as the project is already saving to the default temp backend.
-  };
-
-  const renderMainPanel = () => {
-    switch(viewMode) {
-      case 'edit':
-        return (
-          <CodeEditorPanel
-            initialCode={generatedCode}
-            onCodeChange={setGeneratedCode}
-            onPreviewClick={() => setViewMode('preview')}
-          />
-        );
-      case 'projects':
-        return (
-          <ProjectsPanel
-            projects={projects}
-            onLoadProject={handleLoad}
-            onNewProject={handleNew}
-            isUserStorageConfigured={userStorageConnected}
-            onSettingsClick={() => setIsSettingsOpen(true)}
-          />
-        );
-      case 'upgrade':
-        return (
-          <UpgradePanel 
-            onBackToProjects={() => setViewMode('preview')}
-          />
-        );
-      case 'contact':
-        return (
-          <ContactPanel
-            onBackToEditor={() => setViewMode('preview')}
-          />
-        );
-      case 'preview':
-      default:
-        return (
-          <LivePreviewPanel 
-            code={generatedCode} 
-            isLoading={isLoading} 
-            onEditClick={() => setViewMode('edit')}
-            onSettingsClick={() => setIsSettingsOpen(true)}
-          />
-        );
-    }
-  };
-
   return (
-    <div className="flex flex-col h-screen font-sans bg-gradient-to-br from-gray-50 to-purple-50">
-      {!isApiKeyConfigured && <ApiKeyWarningBanner />}
-      <TopBar 
-        onLoad={handleLoad}
-        onNew={handleNew}
-        projects={projects}
-        currentProject={currentProject}
-        isUserStorageConfigured={userStorageConnected}
-        onSettingsClick={() => setIsSettingsOpen(true)}
-        onMyProjectsClick={handleShowProjects}
-        onUpgradeClick={handleShowUpgrade}
-        onContactClick={handleShowContact}
-        onLogout={onLogout}
-        coins={coins}
-      />
-      <main className="flex-grow flex overflow-hidden p-4 gap-4">
-        <div className="w-[35%] flex-shrink-0 bg-white/70 backdrop-blur-xl border border-white/20 rounded-2xl shadow-lg flex flex-col overflow-hidden">
-          <ChatHistoryPanel messages={messages} onSendMessage={handleGenerate} isLoading={isLoading} learningInsights={learningInsights} coins={coins} isApiKeyConfigured={isApiKeyConfigured} />
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 text-transparent bg-clip-text">
+                Doveable AI
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-lg" data-testid="coin-balance">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567-.267z"/>
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd"/>
+                </svg>
+                <span className="font-bold text-white">{userInfo?.coins || 0}</span>
+              </div>
+              {userInfo?.is_admin && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  data-testid="admin-button"
+                >
+                  Admin
+                </button>
+              )}
+              <button
+                onClick={handleSignOut}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                data-testid="signout-button"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="flex-1 bg-white/70 backdrop-blur-xl border border-white/20 rounded-2xl shadow-lg overflow-hidden">
-          {renderMainPanel()}
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900" data-testid="dashboard-title">My Projects</h1>
+            <p className="text-gray-600 mt-1">Build amazing websites with AI</p>
+          </div>
+          <button
+            onClick={() => setShowNewProject(true)}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
+            data-testid="new-project-button"
+          >
+            + New Project
+          </button>
+        </div>
+
+        {/* New Project Modal */}
+        {showNewProject && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full" data-testid="new-project-modal">
+              <h2 className="text-2xl font-bold mb-4">Create New Project</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Project Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="My Awesome Website"
+                    data-testid="project-name-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description (optional)
+                  </label>
+                  <textarea
+                    value={newProjectDescription}
+                    onChange={(e) => setNewProjectDescription(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    rows="3"
+                    placeholder="A brief description of your project"
+                    data-testid="project-description-input"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowNewProject(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    data-testid="cancel-project-button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createProject}
+                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    data-testid="create-project-button"
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Projects Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <div
+              key={project.id}
+              onClick={() => navigate(`/project/${project.id}`)}
+              className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
+              data-testid={`project-card-${project.id}`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-blue-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
+              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                {project.description || 'No description'}
+              </p>
+              <div className="text-xs text-gray-500">
+                Created {new Date(project.created_at).toLocaleDateString()}
+              </div>
+            </div>
+          ))}
+
+          {projects.length === 0 && !loading && (
+            <div className="col-span-full text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <svg className="w-20 h-20 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-medium text-gray-600 mb-2">No projects yet</h3>
+              <p className="text-gray-500">Create your first project to get started</p>
+            </div>
+          )}
         </div>
       </main>
-      <Footer 
-        currentProject={currentProject} 
-        isUserStorageConfigured={userStorageConnected}
-        saveStatus={saveStatus}
-      />
-      {isSettingsOpen && (
-        <SettingsModal 
-          isOpen={isSettingsOpen} 
-          onClose={() => setIsSettingsOpen(false)}
-          onStorageUpdate={handleStorageUpdate}
-        />
-      )}
-      <ConnectBackendModal
-        isOpen={isConnectModalOpen}
-        onClose={() => setIsConnectModalOpen(false)}
-        onConnect={handleConnectBackend}
-        onSaveTemp={handleContinueWithTemp}
-      />
     </div>
   );
 };

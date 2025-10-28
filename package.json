@@ -12,7 +12,9 @@
     "@google/genai": "^1.27.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "@supabase/supabase-js": "^2.76.1"
+    "@supabase/supabase-js": "^2.76.1",
+    "react-router-dom": "^7.9.4",
+    "@monaco-editor/react": "^4.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

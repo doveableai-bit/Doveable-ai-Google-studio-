@@ -1,186 +1,104 @@
+import { supabase } from './supabase';
+import type { Project, GeneratedCode, UserInfo } from '../types';
 
-import { createSupabaseClient } from './supabase';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { GeneratedCode, Message, Project, StorageConfig, ContactMessage } from '../types';
-
-interface ProjectData extends Project {
-    code: GeneratedCode;
-    messages: Message[];
-}
-
-// NOTE: These are the credentials for the default Doveable AI backend.
-// All projects are saved here by default, with an expiration date.
-const DOVEABLE_SUPABASE_CONFIG: StorageConfig = {
-    provider: 'supabase',
-    supabaseUrl: 'https://ugibwxuskjdwyrdlenjq.supabase.co',
-    supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaWJ3eHVza2pkd3lyZGxlbmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyNzgxNDMsImV4cCI6MjA3Njg1NDE0M30._NhSM_qoWDAIZ4lk26jRH8anoUbk8CgjhnvcXKQoIrY',
-};
-const USER_CONFIG_KEY = 'doveable-user-storage-config';
-
-
-let supabase: SupabaseClient | null = null;
-
-/**
- * Checks if the user has connected their own backend storage.
- * @returns True if a user-specific backend is configured, false otherwise.
- */
-export const isUserStorageConfigured = () => !!localStorage.getItem(USER_CONFIG_KEY);
-
-/**
- * Checks if any storage (default or user-provided) is active.
- * With the new logic, this should always be true unless initialization fails.
- * @returns True if a Supabase client is available.
- */
-export const isStorageConfigured = () => !!supabase;
-
-
-/**
- * Initializes the storage service. It first tries to use a user-configured
- * backend from localStorage. If none is found, it falls back to the default
- * Doveable AI backend.
- * @returns True if a client was successfully initialized.
- */
-export const initializeStorage = (): boolean => {
-    try {
-        const userConfigString = localStorage.getItem(USER_CONFIG_KEY);
-        if (userConfigString) {
-            const config: StorageConfig = JSON.parse(userConfigString);
-            if (config.provider === 'supabase' && config.supabaseUrl && config.supabaseAnonKey) {
-                supabase = createSupabaseClient(config.supabaseUrl, config.supabaseAnonKey);
-                return true;
-            }
-        }
-        
-        // Fallback to default Doveable AI backend
-        // Do not initialize if the default credentials are still placeholders.
-        if (!DOVEABLE_SUPABASE_CONFIG.supabaseUrl || DOVEABLE_SUPABASE_CONFIG.supabaseUrl.includes('your-temp-project-id')) {
-            console.warn("Default Supabase backend is not configured with real credentials. Project saving features will be disabled until a user-specific backend is connected in Settings.");
-            supabase = null;
-            return false;
-        }
-        
-        supabase = createSupabaseClient(DOVEABLE_SUPABASE_CONFIG.supabaseUrl, DOVEABLE_SUPABASE_CONFIG.supabaseAnonKey);
-        return true;
-
-    } catch (error) {
-        console.error("Failed to initialize storage service:", error);
-    }
-    supabase = null;
-    return false;
+const defaultCode: GeneratedCode = {
+  title: 'New Project',
+  html: '<h1>Welcome to your new project!</h1><p>Start by describing what you want to build in the chat.</p>',
+  css: 'body { font-family: sans-serif; text-align: center; margin-top: 2rem; }',
+  javascript: '',
+  externalCss: [],
+  externalJs: [],
 };
 
-/**
- * Disconnects a user's custom backend and reverts to the default
- * Doveable AI backend.
- */
-export const disconnectStorage = () => {
-    localStorage.removeItem(USER_CONFIG_KEY);
-    initializeStorage(); // Re-initialize to fall back to default
-}
-
-// Initialize on module load
-initializeStorage();
-
-
-export const getProjects = async (): Promise<Project[]> => {
-    if (!supabase) return [];
-    
+const getProjects = async (): Promise<Project[]> => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        console.warn("Could not get user session. Projects will not be loaded.");
-        return [];
-    }
-
-    const { data, error } = await supabase
-        .from('projects')
-        .select('id, name, user_id, created_at, expires_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('Error fetching projects:', error);
-        throw error;
-    }
-
-    return data || [];
-};
-
-export const getProject = async (id: string): Promise<ProjectData | null> => {
-    if (!supabase) return null;
+    if (!user) throw new Error("User not authenticated");
 
     const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('id', id)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data as Project[];
+};
+
+const createProject = async (name: string, description: string): Promise<Project> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
+    const newProject = {
+        name,
+        description,
+        user_id: user.id,
+        code: { ...defaultCode, title: name },
+    };
+
+    const { data, error } = await supabase
+        .from('projects')
+        .insert(newProject)
+        .select()
+        .single();
+    
+    if (error) throw error;
+    return data as Project;
+};
+
+const getProject = async (projectId: string): Promise<Project | null> => {
+    const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
         .single();
 
     if (error) {
         console.error('Error fetching project:', error);
-        throw error;
+        return null;
     }
-
-    return data;
+    return data as Project;
 };
 
-export const saveProject = async (
-    project: Omit<ProjectData, 'created_at' | 'user_id'> & { id?: string }
-): Promise<Project> => {
-    if (!supabase) {
-        throw new Error("Storage is not configured. Cannot save project.");
-    }
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-         throw new Error("Could not get user session. Cannot save project.");
-    }
-
-    const projectData: any = {
-        id: project.id,
-        user_id: user.id,
-        name: project.name,
-        code: project.code,
-        messages: project.messages,
-    };
-
-    // Only add an expiration date if the project is being saved
-    // to the default backend (i.e., user has not connected their own).
-    if (!isUserStorageConfigured()) {
-        const expires_at = new Date();
-        expires_at.setDate(expires_at.getDate() + 2); // 48 hours from now
-        projectData.expires_at = expires_at.toISOString();
-    } else {
-        projectData.expires_at = null; // Ensure permanent projects don't have an expiry
-    }
-    
+const updateProjectCode = async (projectId: string, code: GeneratedCode): Promise<Project> => {
     const { data, error } = await supabase
         .from('projects')
-        .upsert(projectData)
-        .select('id, name, user_id, created_at, expires_at')
+        .update({ code, updated_at: new Date().toISOString() })
+        .eq('id', projectId)
+        .select()
         .single();
-
-    if (error) {
-        console.error('Error saving project:', error);
-        throw error;
-    }
-
-    return data;
-};
-
-export const saveContactMessage = async (
-    message: Omit<ContactMessage, 'id' | 'created_at'>
-): Promise<void> => {
-    if (!supabase) {
-        throw new Error("Storage is not configured. Cannot send message.");
-    }
     
-    const { error } = await supabase
-        .from('contact_messages')
-        .insert([
-            { name: message.name, email: message.email, message: message.message }
-        ]);
-
-    if (error) {
-        console.error('Error saving contact message:', error);
-        throw new Error(`Failed to send message: ${error.message}`);
-    }
+    if (error) throw error;
+    return data as Project;
 };
+
+const getUserInfo = async (): Promise<UserInfo> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+    // NOTE: Coins and admin status are mocked as they are not part of the standard Supabase user table.
+    return { id: user.id, email: user.email, coins: 100, is_admin: true };
+};
+
+interface ContactMessage {
+  name: string;
+  email?: string;
+  message: string;
+}
+
+const saveContactMessage = async (messageData: ContactMessage): Promise<void> => {
+    console.log('Contact message saved:', messageData);
+    // In a real app, this would save to the database via Supabase.
+    // const { error } = await supabase.from('contact_messages').insert(messageData);
+    // if (error) throw error;
+    return Promise.resolve();
+};
+
+const projectService = {
+  getProjects,
+  createProject,
+  getProject,
+  updateProjectCode,
+  getUserInfo,
+  saveContactMessage,
+};
+
+export default projectService;

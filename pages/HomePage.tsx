@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
 import AuthModal from '../components/core/AuthModal';
 
-interface HomePageProps {
-  onAuthSuccess: () => void;
-}
-
 // This component now serves as the main landing page for Doveable AI,
 // and it now manages the presentation of the authentication modal.
-const HomePage: React.FC<HomePageProps> = ({ onAuthSuccess }) => {
+const HomePage: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   return (
@@ -161,7 +157,6 @@ const HomePage: React.FC<HomePageProps> = ({ onAuthSuccess }) => {
       <AuthModal 
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        onAuthSuccess={onAuthSuccess}
       />
     </div>
   );

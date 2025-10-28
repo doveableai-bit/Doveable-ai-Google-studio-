@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MailIcon } from '../ui/Icons';
-import { saveContactMessage } from '../../services/projectService';
+// FIX: The projectService is a default export, not a named export.
+import projectService from '../../services/projectService';
 
 interface ContactPanelProps {
     onBackToEditor: () => void;
@@ -25,7 +26,8 @@ const ContactPanel: React.FC<ContactPanelProps> = ({ onBackToEditor }) => {
         setStatus('sending');
         setError(null);
         try {
-            await saveContactMessage({ name, email, message });
+            // FIX: saveContactMessage is a method on the projectService object.
+            await projectService.saveContactMessage({ name, email, message });
             setStatus('success');
             setName('');
             setEmail('');

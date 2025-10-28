@@ -1,7 +1,9 @@
 
+
 import React, { useState, useEffect } from 'react';
+import Editor from '@monaco-editor/react';
 import type { GeneratedCode } from '../../types';
-import { EyeIcon } from '../ui/Icons';
+import { XIcon } from '../ui/Icons';
 
 interface CodeEditorPanelProps {
   initialCode: GeneratedCode | null;
@@ -21,7 +23,7 @@ const CodeEditorPanel: React.FC<CodeEditorPanelProps> = ({ initialCode, onCodeCh
     setCode(initialCode);
   }, [initialCode]);
 
-  const handleCodeChange = (language: 'html' | 'css' | 'javascript', value: string) => {
+  const handleEditorContentChange = (language: 'html' | 'css' | 'javascript', value: string) => {
     if (!code) return;
     const newCode = { ...code, [language]: value };
     setCode(newCode);
@@ -37,22 +39,40 @@ const CodeEditorPanel: React.FC<CodeEditorPanelProps> = ({ initialCode, onCodeCh
   const renderActiveEditor = () => {
     if (!code) return null;
 
-    const commonTextAreaProps = {
-      className: "w-full h-full p-4 font-mono text-sm bg-gray-800 text-gray-200 border-0 rounded-b-lg resize-none focus:outline-none",
-      // FIX: Changed spellCheck from string "false" to boolean false to match React's Booleanish type.
-      spellCheck: false,
+    const languageMap: Record<EditorTab, string> = {
+      html: 'html',
+      css: 'css',
+      js: 'javascript',
+    };
+    
+    const valueMap: Record<EditorTab, string> = {
+      html: code.html,
+      css: code.css,
+      js: code.javascript,
     };
 
-    switch (activeTab) {
-      case 'html':
-        return <textarea {...commonTextAreaProps} value={code.html} onChange={(e) => handleCodeChange('html', e.target.value)} />;
-      case 'css':
-        return <textarea {...commonTextAreaProps} value={code.css} onChange={(e) => handleCodeChange('css', e.target.value)} />;
-      case 'js':
-        return <textarea {...commonTextAreaProps} value={code.javascript} onChange={(e) => handleCodeChange('javascript', e.target.value)} />;
-      default:
-        return null;
-    }
+    const handleEditorChange = (value: string | undefined) => {
+        if (value === undefined) return;
+        const langKey = activeTab === 'js' ? 'javascript' : activeTab;
+        handleEditorContentChange(langKey, value);
+    };
+
+    return (
+      <Editor
+        height="100%"
+        language={languageMap[activeTab]}
+        value={valueMap[activeTab]}
+        onChange={handleEditorChange}
+        theme="vs-dark"
+        options={{
+          minimap: { enabled: false },
+          fontSize: 14,
+          wordWrap: 'on',
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+        }}
+      />
+    );
   };
 
   return (
@@ -61,10 +81,10 @@ const CodeEditorPanel: React.FC<CodeEditorPanelProps> = ({ initialCode, onCodeCh
         <h2 className="font-semibold text-lg text-text-primary">Code Editor</h2>
         <button 
           onClick={onPreviewClick}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover border border-accent rounded-lg text-sm text-white transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          title="Close Editor"
         >
-          <EyeIcon className="w-4 h-4" />
-          Live Preview
+          <XIcon className="w-5 h-5 text-text-secondary" />
         </button>
       </div>
 

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import type { GeneratedCode } from '../../types';
-import { EditIcon, GithubIcon, SupabaseIcon } from '../ui/Icons';
+import { EditIcon, GithubIcon, SupabaseIcon, ShareIcon } from '../ui/Icons';
 
 interface LivePreviewPanelProps {
   code: GeneratedCode | null;
   isLoading: boolean;
+  isEditorVisible: boolean;
   onEditClick: () => void;
   onSettingsClick: () => void;
+  onShareClick: () => void;
 }
 
-const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ code, isLoading, onEditClick, onSettingsClick }) => {
+const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ code, isLoading, isEditorVisible, onEditClick, onSettingsClick, onShareClick }) => {
   const [previewMode, setPreviewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   const srcDoc = code ? `
@@ -71,6 +73,13 @@ const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ code, isLoading, on
         </div>
         <div className="flex items-center gap-2">
             <button
+              onClick={onShareClick}
+              className="p-2 bg-white/50 hover:bg-white/80 border border-gray-300/50 rounded-lg text-text-primary transition-colors"
+              title="Share Project"
+            >
+              <ShareIcon className="w-5 h-5" />
+            </button>
+            <button
               onClick={onSettingsClick}
               className="p-2 bg-white/50 hover:bg-white/80 border border-gray-300/50 rounded-lg text-text-primary transition-colors"
               title="Connect to Supabase"
@@ -97,7 +106,7 @@ const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ code, isLoading, on
                     disabled={!code}
                 >
                     <EditIcon className="w-4 h-4" />
-                    Edit Code
+                    {isEditorVisible ? 'Hide Editor' : 'Edit Code'}
                 </button>
              )}
         </div>
